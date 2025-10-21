@@ -1,0 +1,15 @@
+# Ativa o motor de reescrita de URL
+RewriteEngine On
+
+# Remove a barra final se houver uma
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+# Regra principal para a API
+# Esta regra captura qualquer pedido para 'api/qualquer-coisa'
+# e redireciona para 'api/qualquer-coisa.php'
+# Ex: /api/alunos -> /api/alunos.php
+# Ex: /api/eventos -> /api/eventos.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/([^/]+)/?$ /api/$1.php [L,QSA]

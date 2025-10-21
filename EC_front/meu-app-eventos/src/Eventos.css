@@ -1,0 +1,58 @@
+/* Define o fundo escuro para a nossa secção de eventos */
+.events-section {
+    background-color: #1a202c; /* Um cinza-azulado escuro */
+    padding: 60px 0;
+    color: white;
+}
+
+/* Estilo base para os cards */
+.event-card {
+    background-color: #2d3748; /* Um cinza um pouco mais claro */
+    border: none;
+    border-radius: 12px;
+    padding: 20px;
+    height: 100%; /* Garante que todos os cards na mesma linha tenham a mesma altura */
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card .card-body {
+    padding: 0;
+    flex-grow: 1; /* Faz o corpo do card crescer para ocupar o espaço */
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card .card-title {
+    font-weight: bold;
+}
+
+.event-card .card-text {
+    color: #a0aec0; /* Cor mais suave para a descrição */
+    flex-grow: 1; /* Empurra o link "Saiba Mais" para baixo */
+}
+
+/* Estilo para o ícone */
+.event-icon {
+    font-size: 2rem; /* Tamanho do ícone */
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+/* Cores personalizadas para os ícones e links */
+.event-icon-purple { background-color: #805ad5; }
+.event-link-purple { color: #805ad5; text-decoration: none; font-weight: bold; }
+.event-link-purple:hover { color: #9f7aea; }
+
+.event-icon-pink { background-color: #d53f8c; }
+.event-link-pink { color: #d53f8c; text-decoration: none; font-weight: bold; }
+.event-link-pink:hover { color: #f687b3; }
+
+.event-icon-green { background-color: #38a169; }
+.event-link-green { color: #38a169; text-decoration: none; font-weight: bold; }
+.event-link-green:hover { color: #68d391; }

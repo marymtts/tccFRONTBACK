@@ -1,0 +1,24 @@
+/* Estilo para o botão "Divulgue!" para combinar com o design do site */
+.btn-divulgue {
+    background: linear-gradient(90deg, #d53f8c, #805ad5);
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 8px 20px;
+    border-radius: 8px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.btn-divulgue:hover {
+    color: white;
+    transform: scale(1.05); /* Efeito de zoom ao passar o rato */
+}
+
+/* Garante que os links da navbar tenham uma cor clara e um efeito suave */
+.navbar-nav .nav-link {
+    transition: color 0.2s ease-in-out;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #a0aec0; /* Uma cor um pouco mais clara ao passar o rato */
+}

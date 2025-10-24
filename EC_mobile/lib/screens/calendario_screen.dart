@@ -2,8 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart'; // Para formatar a data
-import 'package:ec_mobile/theme/app_colors.dart'; // Mude para mobilegemini2
-import 'package:ec_mobile/widgets/app_drawer.dart'; // Mude para mobilegemini2
+import 'package:ec_mobile/theme/app_colors.dart'; 
+import 'package:ec_mobile/widgets/app_drawer.dart';
+// ignore: unused_import
+import 'dart:convert';
+// ignore: unused_import
+import 'package:http/http.dart' as http;
 
 class CalendarioScreen extends StatefulWidget {
   const CalendarioScreen({super.key});
@@ -13,36 +17,88 @@ class CalendarioScreen extends StatefulWidget {
 }
 
 class _CalendarioScreenState extends State<CalendarioScreen> {
-  // Variáveis para controlar o estado do calendário
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  
-  // Vamos criar um mapa de eventos (mock) para o pontinho roxo
-  // A chave é o dia (UTC) e o valor é uma lista de strings (eventos)
-  final Map<DateTime, List<String>> _events = {
-    DateTime.utc(2025, 10, 5): ['Palestra de IA'],
-    DateTime.utc(2025, 10, 22): ['Hackathon - Dia 1', 'Palestra - Dia 2'],
-    DateTime.utc(2025, 10, 23): ['Hackathon - Dia 2'],
-    DateTime.utc(2025, 10, 24): ['Hackathon - Final'],
-  };
+
+  // Mapa de eventos que será preenchido pela API
+  Map<DateTime, List<String>> _events = {}; 
+  bool _isLoading = true; // Para mostrar "Carregando..."
+  String _errorMessage = ''; // Para mostrar erros
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay; // Seleciona o dia de hoje por padrão
-  }
-  
-  // Função para pegar os eventos de um dia específico
-  List<String> _getEventsForDay(DateTime day) {
-    // table_calendar usa datas UTC, então normalizamos
-    final dayUtc = DateTime.utc(day.year, day.month, day.day);
-    return _events[dayUtc] ?? []; // Retorna os eventos do dia ou uma lista vazia
+    _selectedDay = _focusedDay;
+    _fetchEvents(); // Chama a API assim que a tela abre
   }
 
+  // Função que chama sua API PHP
+  Future<void> _fetchEvents() async {
+    // URL para testar no CHROME (WEB)
+    final url = Uri.parse('http://localhost/EC_back/api/eventos.php'); 
+    
+    // Lembrete: Para EMULADOR ANDROID, use:
+    // final url = Uri.parse('http://10.0.2.2/EC_back/api/eventos.php');
+    // Para CELULAR FÍSICO, use o IP do seu PC na rede Wi-Fi.
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        // Decodifica o JSON que veio do PHP
+        final List<dynamic> data = jsonDecode(response.body);
+        Map<DateTime, List<String>> tempEvents = {};
+
+        // Processa cada evento do JSON
+        for (var item in data) {
+          // Usa os nomes EXATOS das suas colunas
+          String titulo = item['titulo']; 
+          DateTime dataEvento = DateTime.parse(item['data_evento']); 
+          
+          DateTime dataUtc = DateTime.utc(dataEvento.year, dataEvento.month, dataEvento.day);
+
+          // Agrupa os eventos por dia no mapa
+          if (tempEvents[dataUtc] == null) {
+            tempEvents[dataUtc] = [];
+          }
+          tempEvents[dataUtc]!.add(titulo);
+        }
+
+        // Atualiza a tela com os eventos da API
+        setState(() {
+          _events = tempEvents;
+          _isLoading = false;
+        });
+
+      } else {
+        // Se a API retornar um erro (404, 500, etc.)
+        setState(() {
+          _errorMessage = 'Falha ao carregar eventos (Erro HTTP ${response.statusCode})';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Se houver erro de conexão (sem internet, URL errada, XAMPP desligado)
+      print('Erro ao buscar eventos: $e'); // Mostra o erro detalhado no console de debug
+      setState(() {
+        _errorMessage = 'Erro de conexão. Verifique o XAMPP, a URL e sua internet.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Função auxiliar do calendário (lê o mapa _events)
+  List<String> _getEventsForDay(DateTime day) {
+    final dayUtc = DateTime.utc(day.year, day.month, day.day);
+    return _events[dayUtc] ?? [];
+  }
+
+  // Constrói a interface da tela
   @override
   Widget build(BuildContext context) {
-    // Formata o título da caixa de eventos
-    final String selectedDayTitle = DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDay!);
+    final String selectedDayTitle = _selectedDay != null
+        ? DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDay!)
+        : '';
 
     return Scaffold(
       appBar: AppBar(
@@ -52,36 +108,35 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ),
       drawer: const AppDrawer(currentPage: 'Calendário'),
       
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // O WIDGET DO CALENDÁRIO
-            _buildCalendar(),
-            
-            const SizedBox(height: 24),
-            
-            // A SEÇÃO "EVENTOS DO DIA"
-            _buildEventList(selectedDayTitle),
-          ],
-        ),
-      ),
+      // Lida com os estados de Carregando, Erro ou Sucesso
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator()) // Mostra "Carregando..."
+          : _errorMessage.isNotEmpty
+              ? Center( // Mostra a mensagem de erro
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                  ),
+                ) 
+              : SingleChildScrollView( // Mostra o conteúdo principal
+                  child: Column(
+                    children: [
+                      _buildCalendar(), // O calendário em si
+                      const SizedBox(height: 24),
+                      // A caixa de eventos (só mostra se um dia foi selecionado)
+                      if (_selectedDay != null) 
+                        _buildEventList(selectedDayTitle), 
+                    ],
+                  ),
+                ),
     );
   }
 
-  // --- COMPONENTES DA TELA ---
-
-// lib/screens/calendario_screen.dart
-
-  // O Calendário
-  // lib/screens/calendario_screen.dart
-
-  // O Calendário
-  // lib/screens/calendario_screen.dart
-
-  // O Calendário (VERSÃO 3 - A PROVA DE BUGS)
-  // lib/screens/calendario_screen.dart
-
-  // O Calendário (VERSÃO 5 - CORRIGINDO OS BUILDERS)
+  // A função que constrói o widget TableCalendar (V5, já corrigida)
   Widget _buildCalendar() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -91,23 +146,11 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: TableCalendar(
-        // Configurações Básicas
         locale: 'pt_BR',
         firstDay: DateTime.utc(2020, 1, 1),
         lastDay: DateTime.utc(2030, 12, 31),
         focusedDay: _focusedDay,
-
-        headerStyle: HeaderStyle(
-          formatButtonVisible: false, // <-- ESTA LINHA ESCONDE O BOTÃO
-          titleCentered: true,
-          titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white),
-          rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.white),
-        ),
-        
-        eventLoader: _getEventsForDay,
-        
-        // Gerenciamento de Seleção
+        eventLoader: _getEventsForDay, // Usa os dados da API (via _events)
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
@@ -115,17 +158,18 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             _focusedDay = focusedDay; 
           });
         },
-        
-        // ▼▼▼ AQUI ESTÃO AS CORREÇÕES ▼▼▼
+        headerStyle: HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white),
+          rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.white),
+        ),
+        // Builders para customizar a aparência dos dias
         calendarBuilders: CalendarBuilders(
-          
-          // CORREÇÃO 1: Remove os "pontinhos fantasmas"
           markerBuilder: (context, day, events) {
-            // Retorna um widget vazio para não desenhar nada
-            return Container();
+            return Container(); // Sem pontinhos
           },
-          
-          // Builder para os dias normais
           defaultBuilder: (context, day, focusedDay) {
             final hasEvent = _getEventsForDay(day).isNotEmpty;
             return Center(
@@ -135,8 +179,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               ),
             );
           },
-          
-          // Builder para os dias fora do mês
           outsideBuilder: (context, day, focusedDay) {
             final hasEvent = _getEventsForDay(day).isNotEmpty;
             return Center(
@@ -146,14 +188,11 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               ),
             );
           },
-          
-          // CORREÇÃO 2a: Adiciona o fundo cinza AO BUILDER
           todayBuilder: (context, day, focusedDay) {
             final hasEvent = _getEventsForDay(day).isNotEmpty;
             return Container(
-              // Adicionamos a decoração (fundo cinza) AQUI
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: AppColors.surfaceLight, // Fundo cinza claro
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
@@ -168,16 +207,13 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               ),
             );
           },
-          
-          // CORREÇÃO 2b: Adiciona a borda AO BUILDER
           selectedBuilder: (context, day, focusedDay) {
             final hasEvent = _getEventsForDay(day).isNotEmpty;
             return Container(
-              // Adicionamos a decoração (borda vermelha) AQUI
               decoration: BoxDecoration(
                 color: Colors.transparent, // Fundo transparente
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.accent, width: 2), // A borda
+                border: Border.all(color: AppColors.accent, width: 2), // Borda vermelha
               ),
               child: Center(
                 child: Text(
@@ -192,24 +228,18 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             );
           },
         ),
-
-        // ESTILIZAÇÃO (Agora está mais limpo)
+        // Estilos gerais do calendário
         calendarStyle: CalendarStyle(
-          // As decorações de 'today' e 'selected' foram REMOVIDAS daqui
-          // pois agora são controladas 100% pelos builders acima.
-
-          // Estilo padrão para texto (afeta fins de semana, etc.)
           weekendTextStyle: const TextStyle(color: Colors.white70),
         ),
       ),
     );
   }
 
-  // FUNÇÃO AUXILIAR PARA O BUILDER (Adicione esta função junto)
-
-  // A Lista de Eventos
+  // A função que constrói a caixa "Eventos de DD/MM/AAAA"
   Widget _buildEventList(String title) {
-    final selectedEvents = _getEventsForDay(_selectedDay!);
+    // Busca os eventos para o dia selecionado (já vieram da API)
+    final selectedEvents = _getEventsForDay(_selectedDay!); 
     
     return Container(
       width: double.infinity,
@@ -228,20 +258,21 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
           ),
           const SizedBox(height: 16),
           
-          // Se não houver eventos, mostra a mensagem
+          // Mostra a lista de eventos ou a mensagem "Nenhum evento"
           if (selectedEvents.isEmpty)
             const Text(
               'Nenhum evento para este dia.',
               style: TextStyle(color: AppColors.secondaryText),
             )
           else
-            // Se houver eventos, lista eles
+            // Cria um Text() para cada evento na lista
             ...selectedEvents.map((event) => Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Text("• $event", style: const TextStyle(fontSize: 16)),
-            )),
+            )).toList(),
         ],
       ),
     );
   }
 }
+// --- FIM DA CLASSE QUE VAMOS SUBSTITUIR --- 

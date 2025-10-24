@@ -136,7 +136,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     );
   }
 
-  // A função que constrói o widget TableCalendar (V5, já corrigida)
+  // A função que constrói o widget TableCalendar (corrigida)
   Widget _buildCalendar() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -150,7 +150,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         firstDay: DateTime.utc(2020, 1, 1),
         lastDay: DateTime.utc(2030, 12, 31),
         focusedDay: _focusedDay,
-        eventLoader: _getEventsForDay, // Usa os dados da API (via _events)
+        eventLoader: _getEventsForDay, // Usa os dados da API pra puxar evento (via _events)
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {

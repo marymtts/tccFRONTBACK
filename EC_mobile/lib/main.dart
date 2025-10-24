@@ -1,8 +1,10 @@
-
+import 'dart:convert'; // <-- ADICIONE ESTA LINHA para o jsonDecode
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; 
 import 'package:ec_mobile/theme/app_colors.dart'; 
 import 'package:ec_mobile/widgets/app_drawer.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
@@ -43,119 +45,180 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget { // <--- MUDE AQUI
   const HomeScreen({super.key});
 
+  @override // <-- ADICIONE ESTAS DUAS LINHAS
+  State<HomeScreen> createState() => _HomeScreenState(); 
+} // <--- A CHAVE QUE VOCÊ MENCIONOU AGORA FECHA AQUI!
+
+class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
+
+  // --- MUDANÇA 1: Adicionar variáveis de estado ---
+  List<dynamic> _featuredEvents = []; // Lista para guardar os eventos da API
+  bool _isLoading = true;
+  String _errorMessage = '';
+  // --- FIM DA MUDANÇA 1 ---
+
+  // --- MUDANÇA 2: Adicionar initState e a função da API ---
+  @override
+  void initState() {
+    super.initState();
+    _fetchFeaturedEvents();
+  }
+
+  Future<void> _fetchFeaturedEvents() async {
+    // !!! MUDE A URL para o seu endpoint de eventos em destaque !!!
+    // Exemplo: 'http://localhost/EC_back/api/get_eventos_destaque.php'
+    // Por enquanto, vou usar o mesmo endpoint de todos os eventos
+    final url = Uri.parse('http://localhost/EC_back/api/eventos.php');
+
+    // (Lembre-se das URLs para Emulador/Celular Físico se precisar)
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+
+        // ATENÇÃO: Se você tiver um endpoint que retorna SÓ os destaques,
+        // talvez não precise filtrar. Se não, filtre aqui.
+        // Exemplo simples: Pegar os 3 primeiros eventos
+        final List<dynamic> featured = data.take(3).toList(); 
+
+        setState(() {
+          _featuredEvents = featured; // Guarda os eventos filtrados
+          _isLoading = false;
+        });
+
+      } else {
+        setState(() {
+          _errorMessage = 'Falha ao carregar eventos (Erro ${response.statusCode})';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print(e);
+      setState(() {
+        _errorMessage = 'Erro de conexão. Verifique o XAMPP e a URL.';
+        _isLoading = false;
+      });
+    }
+  }
+  // --- FIM DA MUDANÇA 2 ---
 
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    drawer: const AppDrawer(currentPage: 'Início'),
-    appBar: AppBar(
-      
-      backgroundColor: AppColors.surface,
-      
-      elevation: 0,
-      
-      centerTitle: false,
-      
-      
-      title: Row(
-        children: [
-          const Icon(Icons.calendar_month, color: AppColors.accent, size: 28),
-          const SizedBox(width: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryText,
-              ),
-              children: [
-                TextSpan(text: 'Eventos '),
-                TextSpan(
-                  text: 'Cotil',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+ // Dentro da classe _HomeScreenState
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      drawer: const AppDrawer(currentPage: 'Início'),
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        centerTitle: false,
+        title: Row(
+          children: [
+            const Icon(Icons.calendar_month, color: AppColors.accent, size: 28),
+            const SizedBox(width: 8),
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primaryText,
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-
-      
-      actions: [
-        
-        Padding(
-          padding: const EdgeInsets.only(right: 10.0), 
-          child: TextButton(
-            onPressed: () {},
-            child: const Text('Divulgue!'),
-            style: TextButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-          ),
-        ),
-      ],
-    ),
-    
-
-    body: SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                
-                
-                
-                
-
-                
-                const SizedBox(height: 80), 
-                _buildHeroSection(),
-                const SizedBox(height: 80),
-                _buildEventsSection(),
-              ],
-            ),
-          ),
-          
-
-          
-          Container(
-            width: double.infinity, 
-            color: AppColors.sectionBackground, 
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 80),
-                  _buildAboutUsSection(),
-                  const SizedBox(height: 80),
-                  _buildCtaSection(),
-                  const SizedBox(height: 80),
-                  _buildFooter(),
-                  const SizedBox(height: 40),
+                  TextSpan(text: 'Eventos '),
+                  TextSpan(
+                    text: 'Cotil',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: TextButton(
+              onPressed: () {},
+              child: const Text('Divulgue!'),
+              style: TextButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            ),
           ),
         ],
       ),
-    ),
-  );
-}
+      // --- AQUI ESTÁ A CORREÇÃO PARA CARREGANDO/ERRO ---
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator()) // Mostra o círculo de carregamento
+          : _errorMessage.isNotEmpty
+              ? Center( // Mostra a mensagem de erro se ela existir
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                  ),
+                )
+              : SingleChildScrollView( // Mostra o conteúdo principal se não houver erro e não estiver carregando
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Conteúdo com fundo principal
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 80),
+                            _buildHeroSection(),
+                            const SizedBox(height: 80),
+                            _buildEventsSection(), // Usa os dados da API
+                          ],
+                        ),
+                      ),
+                      // Conteúdo com fundo secundário
+                      Container(
+                        width: double.infinity,
+                        color: AppColors.sectionBackground,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 80),
+                              _buildAboutUsSection(),
+                              const SizedBox(height: 80),
+                              _buildCtaSection(),
+                              const SizedBox(height: 80),
+                              _buildFooter(),
+                              const SizedBox(height: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+      // --- FIM DA CORREÇÃO ---
+    );
+  }
+  // --- FIM DA MUDANÇA 3 ---
 
 
-  Widget _buildHeroSection() {
+  // As funções _buildHeroSection, _buildAboutUsSection, _buildCtaSection, _buildFooter
+  // continuam EXATAMENTE IGUAIS.
+
+    Widget _buildHeroSection() {
     return Column(
       children: [
         RichText(
@@ -203,100 +266,8 @@ Widget build(BuildContext context) {
         ),
       ],
     );
-  }
-
-  Widget _buildEventsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Próximos Eventos',
-          
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primaryText, 
-          ),
-        ),
-        const SizedBox(height: 20),
-        _buildEventCard(
-          icon: Icons.biotech,
-          iconColor: AppColors.iconBlue,
-          date: '15 de Setembro, 19:30',
-          title: 'Palestra: IA Generativa',
-          description: 'Uma introdução ao mundo das IAs que criam texto e imagem.',
-          linkText: 'Saiba Mais',
-        ),
-        const SizedBox(height: 20),
-        _buildEventCard(
-          icon: Icons.code,
-          iconColor: AppColors.iconPink,
-          date: '22 a 24 de Setembro',
-          title: 'Hackathon de Inovação',
-          description: 'Maratona de programação para criar soluções inovadoras para a cidade.',
-          linkText: 'Inscreva-se Agora',
-        ),
-        
-      ],
-    );
-  }
-
-  Widget _buildEventCard({
-    required IconData icon,
-    required Color iconColor,
-    required String date,
-    required String title,
-    required String description,
-    required String linkText,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: iconColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 24, color: Colors.white),
-          ),
-          const SizedBox(height: 15),
-          Text(date, style: const TextStyle(color: AppColors.secondaryText, fontSize: 12)),
-          const SizedBox(height: 5),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.primaryText)),
-          const SizedBox(height: 10),
-          Text(description, style: const TextStyle(color: AppColors.secondaryText, height: 1.5)),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Text(
-                linkText,
-                
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryText, 
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(Icons.arrow_forward, size: 16, color: AppColors.primaryText),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-  
-
-
-
-
-Widget _buildAboutUsSection() {
+  } 
+  Widget _buildAboutUsSection() {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -331,8 +302,6 @@ Widget _buildAboutUsSection() {
     ],
   );
 }
-
-
 Widget _buildCtaSection() {
   return Container(
     width: double.infinity,
@@ -382,8 +351,6 @@ Widget _buildCtaSection() {
     ),
   );
 }
-
-
 Widget _buildFooter() {
   return const Center(
     child: Text(
@@ -396,4 +363,149 @@ Widget _buildFooter() {
     ),
   );
 }
-}
+
+
+  // --- MUDANÇA 4: Modificar _buildEventsSection ---
+  Widget _buildEventsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Próximos Eventos',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryText,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // A MÁGICA: Em vez de chamadas fixas, fazemos um loop
+        // sobre a lista _featuredEvents que veio da API.
+        Column(
+          children: _featuredEvents.map((event) {
+            // Para cada 'event' na lista, criamos um Card
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20.0), // Adiciona espaço entre cards
+              child: _buildEventCard(
+                // !!! MUDE AQUI para usar as chaves do seu JSON !!!
+                icon: _getIconForEvent(event['titulo'] ?? ''), // Função auxiliar para ícone (exemplo)
+                iconColor: _getColorForEvent(event['titulo'] ?? ''), // Função auxiliar para cor (exemplo)
+                date: _formatApiDate(event['data_evento'] ?? ''), // Função auxiliar para formatar data
+                title: event['titulo'] ?? 'Título indisponível',
+                description: event['descricao'] ?? 'Descrição indisponível', // Use a descrição curta se tiver
+                linkText: (event['inscricao'] ?? 0) == 1 ? 'Inscreva-se Agora' : 'Saiba Mais',
+              ),
+            );
+          }).toList(), // Transforma o resultado do map em uma lista de Widgets
+        ),
+      ],
+    );
+  }
+  // --- FIM DA MUDANÇA 4 ---
+
+
+  // A função _buildEventCard continua IGUAL.
+  // Ela já recebe os dados como parâmetros.
+  Widget _buildEventCard({
+    required IconData icon,
+    required Color iconColor,
+    required String date,
+    required String title,
+    required String description,
+    required String linkText,
+  }) {
+    /* ... seu código do _buildEventCard ... */
+     return Container(
+       padding: const EdgeInsets.all(20),
+       decoration: BoxDecoration(
+         color: AppColors.surface,
+         borderRadius: BorderRadius.circular(8),
+       ),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+           Container(
+             padding: const EdgeInsets.all(12),
+             decoration: BoxDecoration(
+               color: iconColor,
+               borderRadius: BorderRadius.circular(8),
+             ),
+             child: Icon(icon, size: 24, color: Colors.white),
+           ),
+           const SizedBox(height: 15),
+           Text(date, style: const TextStyle(color: AppColors.secondaryText, fontSize: 12)),
+           const SizedBox(height: 5),
+           Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.primaryText)),
+           const SizedBox(height: 10),
+           Text(description, style: const TextStyle(color: AppColors.secondaryText, height: 1.5)),
+           const SizedBox(height: 20),
+           // Adicionar Navegação ao clicar no link
+           InkWell( 
+             onTap: () {
+               // TODO: Navegar para a tela de detalhes/inscrição passando o ID do evento
+               // Ex: Navigator.push(context, MaterialPageRoute(builder: (_) => DetalheScreen(eventId: event['id'])));
+             },
+             child: Row(
+               children: [
+                 Text(
+                   linkText,
+                   style: const TextStyle(
+                     fontWeight: FontWeight.bold,
+                     color: AppColors.primaryText, 
+                   ),
+                 ),
+                 const SizedBox(width: 5),
+                 const Icon(Icons.arrow_forward, size: 16, color: AppColors.primaryText),
+               ],
+             ),
+           )
+         ],
+       ),
+     );
+  }
+
+
+  // --- MUDANÇA 5: Funções Auxiliares (Exemplos) ---
+  // Você precisará criar lógicas para escolher ícone/cor e formatar data
+  IconData _getIconForEvent(String title) {
+    if (title.toLowerCase().contains('palestra')) return Icons.biotech;
+    if (title.toLowerCase().contains('hackathon')) return Icons.code;
+    return Icons.event; // Ícone padrão
+  }
+
+  Color _getColorForEvent(String title) {
+    if (title.toLowerCase().contains('palestra')) return AppColors.iconBlue;
+    if (title.toLowerCase().contains('hackathon')) return AppColors.iconPink;
+    return AppColors.iconGreen; // Cor padrão
+  }
+
+  String _formatApiDate(String apiDate) {
+    try {
+      // Converte 'AAAA-MM-DD' para DateTime
+      final DateTime parsedDate = DateTime.parse(apiDate);
+      // Formata para 'DD de MMMM, HH:mm' (ou o formato que preferir)
+      return DateFormat('dd \'de\' MMMM', 'pt_BR').format(parsedDate); 
+    } catch (e) {
+      return apiDate; // Retorna a string original se a formatação falhar
+    }
+  }
+  // --- FIM DA MUDANÇA 5 ---
+
+} // Fim da classe _HomeScreenState
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+

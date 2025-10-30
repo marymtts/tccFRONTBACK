@@ -1,4 +1,7 @@
+// ignore_for_file: avoid_print, sort_child_properties_last
+
 import 'dart:convert'; // <-- ADICIONE ESTA LINHA para o jsonDecode
+import 'package:ec_mobile/screens/login_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; 
@@ -6,6 +9,9 @@ import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:ec_mobile/widgets/app_drawer.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:ec_mobile/screens/proximos_eventos_screen.dart';
+import 'package:ec_mobile/screens/register_screen.dart';
+import 'package:ec_mobile/screens/login_screen.dart';
 
 void main() async {
   // Garante que o Flutter está pronto
@@ -40,7 +46,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(),//const RegisterScreen(),//const HomeScreen(),
     );
   }
 }
@@ -255,7 +261,12 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
         const SizedBox(height: 30),
         
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
+        );
+          },
           child: const Text('Ver Próximos Eventos', style: TextStyle(fontSize: 16)),
           style: TextButton.styleFrom(
             backgroundColor: AppColors.accent,
@@ -371,7 +382,7 @@ Widget _buildFooter() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Próximos Eventos',
+          'Recentes',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -443,7 +454,7 @@ Widget _buildFooter() {
            // Adicionar Navegação ao clicar no link
            InkWell( 
              onTap: () {
-               // TODO: Navegar para a tela de detalhes/inscrição passando o ID do evento
+               // 
                // Ex: Navigator.push(context, MaterialPageRoute(builder: (_) => DetalheScreen(eventId: event['id'])));
              },
              child: Row(

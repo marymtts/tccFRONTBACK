@@ -1,4 +1,6 @@
 // lib/screens/calendario_screen.dart
+// ignore_for_file: deprecated_member_use, avoid_print, unnecessary_to_list_in_spreads
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart'; // Para formatar a data
@@ -37,9 +39,6 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
     // URL para testar no CHROME (WEB)
     final url = Uri.parse('http://localhost/EC_back/api/eventos.php'); 
     
-    // Lembrete: Para EMULADOR ANDROID, use:
-    // final url = Uri.parse('http://10.0.2.2/EC_back/api/eventos.php');
-    // Para CELULAR FÍSICO, use o IP do seu PC na rede Wi-Fi.
 
     try {
       final response = await http.get(url);

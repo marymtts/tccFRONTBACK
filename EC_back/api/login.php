@@ -16,6 +16,12 @@ include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+$method = $_SERVER['REQUEST_METHOD'];
+if ($method == "OPTIONS") {
+    http_response_code(200);
+    exit(); // Responda "OK" para a "pergunta" OPTIONS e saia
+}
+
 // Obtém os dados do POST (JSON)
 $data = json_decode(file_get_contents("php://input"));
 
@@ -23,7 +29,7 @@ $data = json_decode(file_get_contents("php://input"));
 if (!empty($data->email) && !empty($data->senha)) {
     
     // Procura o utilizador pelo email
-    $query = "SELECT id, nome, email, senha FROM usuarios WHERE email = :email LIMIT 1";
+    $query = "SELECT id, ra, nome, email, senha FROM alunos WHERE email = :email LIMIT 1";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':email', $data->email);
     $stmt->execute();

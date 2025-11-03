@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/theme/app_colors.dart'; // Importe suas cores
+import 'package:ec_mobile/screens/login_screen.dart'; // Importa a tela de login
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -31,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() { _isLoading = true; });
 
     // URL da API que acabamos de criar
-    final url = Uri.parse('http://localhost/EC_back/api/registrar_aluno.php');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/registrar_aluno.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -175,15 +176,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         : const Text('Registrar', style: TextStyle(fontSize: 18)),
                   ),
                 ),
-                
+                  
                 // Botão para ir ao Login
                 TextButton(
                   onPressed: () {
-                    // TODO: Navegar para a LoginScreen
-                    // Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
-                    Navigator.pop(context); // Por enquanto, só fecha
+                   Navigator.push( // Ou Navigator.pushReplacement
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  ); // Por enquanto, só fecha
                   },
-                  child: const Text('Já tem uma conta? Faça login'),
+                  child: const Text('Já tem uma conta? Faça login!'),
                 )
               ],
             ),

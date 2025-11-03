@@ -6,6 +6,8 @@ import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:ec_mobile/main.dart'; // Para navegar para a HomeScreen
 import 'package:ec_mobile/screens/register_screen.dart'; // Para navegar para o Registro
 import 'package:shared_preferences/shared_preferences.dart'; // Para salvar o token
+import 'package:provider/provider.dart';
+import 'package:ec_mobile/providers/user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _isLoading = true; });
 
     // URL da API de Login
-    final url = Uri.parse('http://localhost/EC_back/api/login.php');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/login.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -51,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('jwt_token', jwtToken); 
         // Você também pode salvar dados do usuário, se quiser
         // await prefs.setString('user_name', responseData['data']['nome']); 
+        Provider.of<UserProvider>(context, listen: false).setUserFromToken(jwtToken);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -156,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       MaterialPageRoute(builder: (context) => const RegisterScreen()),
                     );
                   },
-                  child: const Text('Não tem uma conta? Crie uma'),
+                  child: const Text('Não tem uma conta? Registre-se já!'),
                 )
               ],
             ),

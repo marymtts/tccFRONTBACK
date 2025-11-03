@@ -37,7 +37,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   // Função que chama sua API PHP
   Future<void> _fetchEvents() async {
     // URL para testar no CHROME (WEB)
-    final url = Uri.parse('http://localhost/EC_back/api/eventos.php'); 
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php'); 
     
 
     try {
@@ -143,6 +143,14 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          blurRadius: 20.0,
+          offset: const Offset(0, 8),
+        ),
+      ],      
+      
       ),
       child: TableCalendar(
         locale: 'pt_BR',
@@ -170,23 +178,32 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
             return Container(); // Sem pontinhos
           },
           defaultBuilder: (context, day, focusedDay) {
-            final hasEvent = _getEventsForDay(day).isNotEmpty;
-            return Center(
-              child: Text(
-                '${day.day}',
-                style: TextStyle(color: hasEvent ? AppColors.accent : Colors.white),
-              ),
-            );
-          },
+  final hasEvent = _getEventsForDay(day).isNotEmpty;
+  final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+  Color textColor = Colors.white; // Padrão
+  if (hasEvent) textColor = AppColors.accent;
+  else if (isWeekend) textColor = Colors.white70;
+  
+  // ▼▼▼ ADICIONA A MARGEM PARA CORRIGIR A DEFORMAÇÃO ▼▼▼
+  return Container(
+    margin: const EdgeInsets.all(8.0),
+    child: Center(child: Text('${day.day}', style: TextStyle(color: textColor))),
+  );
+},
           outsideBuilder: (context, day, focusedDay) {
-            final hasEvent = _getEventsForDay(day).isNotEmpty;
-            return Center(
-              child: Text(
-                '${day.day}',
-                style: TextStyle(color: hasEvent ? AppColors.accent.withOpacity(0.5) : Colors.white.withOpacity(0.3)),
-              ),
-            );
-          },
+  final hasEvent = _getEventsForDay(day).isNotEmpty;
+
+  // ▼▼▼ ADICIONA A MARGEM PARA CORRIGIR A DEFORMAÇÃO ▼▼▼
+  return Container(
+    margin: const EdgeInsets.all(8.0),
+    child: Center(
+      child: Text(
+        '${day.day}',
+        style: TextStyle(color: hasEvent ? AppColors.accent.withOpacity(0.5) : Colors.white30),
+      ),
+    ),
+  );
+},
           todayBuilder: (context, day, focusedDay) {
             final hasEvent = _getEventsForDay(day).isNotEmpty;
             return Container(

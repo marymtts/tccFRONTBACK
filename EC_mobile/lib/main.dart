@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, sort_child_properties_last
 
-import 'dart:convert'; // <-- ADICIONE ESTA LINHA para o jsonDecode
+import 'dart:convert'; 
 import 'package:ec_mobile/screens/login_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -11,16 +11,24 @@ import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ec_mobile/screens/proximos_eventos_screen.dart';
 import 'package:ec_mobile/screens/register_screen.dart';
-import 'package:ec_mobile/screens/login_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:ec_mobile/providers/user_provider.dart';
+import 'package:ec_mobile/screens/auth_check_screen.dart';
 
 void main() async {
-  // Garante que o Flutter está pronto
+ 
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa a formatação de data para pt_BR
+
   await initializeDateFormatting('pt_BR', null); 
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => UserProvider(),
+      child: const MyApp(), // O seu app agora é "filho" do Provedor
+    ),
+  ); 
+
 }
 
 class MyApp extends StatelessWidget {
@@ -46,7 +54,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),//const RegisterScreen(),//const HomeScreen(),
+      home: const AuthCheckScreen(),//const HomeScreen(),
     );
   }
 }
@@ -75,9 +83,9 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
 
   Future<void> _fetchFeaturedEvents() async {
     // !!! MUDE A URL para o seu endpoint de eventos em destaque !!!
-    // Exemplo: 'http://localhost/EC_back/api/get_eventos_destaque.php'
+    // Exemplo: 'http://192.168.15.174/EC_back/api/get_eventos_destaque.php'
     // Por enquanto, vou usar o mesmo endpoint de todos os eventos
-    final url = Uri.parse('http://localhost/EC_back/api/eventos.php');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php');
 
     // (Lembre-se das URLs para Emulador/Celular Físico se precisar)
 
@@ -382,7 +390,7 @@ Widget _buildFooter() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Recentes',
+          'Por onde você quer começar?',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,

@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:ec_mobile/theme/app_colors.dart'; // Verifique o caminho
+import 'package:provider/provider.dart';
+import 'package:ec_mobile/providers/user_provider.dart';
 
 class InscricaoEventoScreen extends StatefulWidget {
   final int eventId; // Recebe o ID do evento
@@ -26,7 +28,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   final int _studentId = 123; // Exemplo - Pegue o ID real no futuro
 
   // URL base para construir o caminho completo das imagens
-  final String _imageBaseUrl = 'http://localhost/EC_back'; // Ajuste se necessário
+  final String _imageBaseUrl = 'http://192.168.15.174/EC_back'; // Ajuste se necessário
 
   @override
   void initState() {
@@ -37,7 +39,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   // Busca os detalhes do evento específico na API
   Future<void> _fetchEventDetails() async {
     // URL que busca um evento por ID
-    final url = Uri.parse('http://localhost/EC_back/api/eventos.php?id=${widget.eventId}');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php?id=${widget.eventId}');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -85,43 +87,63 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     }
   }
 
-  // --- Função para registrar a inscrição (CHAMARÁ A NOVA API) ---
+  // Dentro da classe _InscricaoEventoScreenState
+
+  // --- Função para registrar a inscrição (VERSÃO COMPLETA) ---
   Future<void> _registerForEvent() async {
     setState(() { _isRegistering = true; _errorMessage = ''; });
 
-    // URL do NOVO endpoint PHP para registrar participação
-    final url = Uri.parse('http://localhost/EC_back/api/registrar_participacao.php');
+    // 1. Pegar o ID do usuário logado (do Provider)
+    // 'listen: false' é usado dentro de funções
+    final user = Provider.of<UserProvider>(context, listen: false).user;
+
+    // 2. Verificar se o usuário está logado
+    if (user == null) {
+      _showFeedbackSnackbar('Você precisa estar logado para se inscrever.', isError: true);
+      setState(() { _isRegistering = false; });
+      // TODO: Opcional - Navegar para a tela de login
+      // Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+      return; // Para a execução
+    }
+
+    // 3. URL da API que acabamos de criar
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/registrar_participacao.php');
+    // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
+      // 4. Enviar os IDs para a API
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id_aluno': _studentId, // ID do aluno (simulado)
+        body: jsonEncode({ // Envia os IDs como JSON
+          'id_aluno': user.id, // ID do aluno logado!
           'id_evento': widget.eventId, // ID do evento atual
         }),
       );
 
-      // Sempre tente decodificar, mesmo em caso de erro, pois a API pode mandar uma mensagem
+      // 5. Decodifica a resposta da API
       final Map<String, dynamic> responseData = jsonDecode(response.body);
 
+      // 6. Verifica a resposta (Sucesso ou Erro da API)
       if ((response.statusCode == 200 || response.statusCode == 201) && responseData['status'] == 'success') {
+          // SUCESSO!
           _showFeedbackSnackbar(responseData['message'] ?? 'Inscrição realizada!', isError: false);
-          // 
-          // setState(() { _jaInscrito = true; }); // Exemplo
+          // TODO: Mudar o botão para "Inscrito"
       } else {
-          // Usa a mensagem de erro da API ou uma padrão
+          // ERRO (ex: "Já inscrito", "Vagas esgotadas", etc.)
           _showFeedbackSnackbar(responseData['message'] ?? 'Erro ${response.statusCode}: Não foi possível registrar.', isError: true);
       }
     } catch (e) {
+      // 7. Erro de Conexão (XAMPP desligado, etc.)
       print('Erro ao registrar participação: $e');
       _showFeedbackSnackbar('Erro de conexão ao tentar registrar.', isError: true);
     } finally {
+      // 8. Para o "loading" do botão
       setState(() { _isRegistering = false; });
     }
   }
 
-  // Função auxiliar para mostrar feedback (Snackbar)
+  // Função auxiliar para mostrar feedback (Snackbar) - (Verifique se ela já existe)
    void _showFeedbackSnackbar(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -130,6 +152,8 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       ),
     );
   }
+
+  // Função auxiliar para mostrar feedback (Snackbar)
 
   // Função auxiliar para formatar a data
   String _formatApiDate(String? apiDate) {
@@ -162,11 +186,11 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(_errorMessage, style: const TextStyle(color: Colors.red, fontSize: 16), textAlign: TextAlign.center)))
+              ? Center(child: Padding(padding: const EdgeInsets.all(24.0), child: Text(_errorMessage, style: const TextStyle(color: Colors.red, fontSize: 16), textAlign: TextAlign.center)))
               : _eventDetails == null
                   ? const Center(child: Text('Não foi possível carregar os detalhes.'))
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -175,7 +199,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                             _eventDetails!['titulo'] ?? 'Evento sem título',
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primaryText),
                           ),
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 16),
 
                           // --- Data ---
                           Row(
@@ -188,46 +212,42 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 30),
 
                           // --- Imagem ou Placeholder ---
-                          Container(
-                            width: double.infinity,
-                            height: 200, // Altura fixa para a imagem/placeholder
-                            decoration: BoxDecoration(
-                              color: AppColors.surface, // Cor de fundo para o placeholder
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ClipRRect( // Para arredondar a imagem
-                              borderRadius: BorderRadius.circular(8),
-                              child: fullImageUrl != null
-                                ? Image.network( // Carrega a imagem da API
-                                    fullImageUrl,
-                                    fit: BoxFit.cover, // Cobre o espaço disponível
-                                    // Mostra um loading enquanto a imagem carrega
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return const Center(child: CircularProgressIndicator());
-                                    },
-                                    // Mostra um ícone de erro se a imagem falhar
-                                    errorBuilder: (context, error, stackTrace) {
-                                      print("Erro ao carregar imagem: $error");
-                                      return const Center(child: Icon(Icons.broken_image, color: AppColors.secondaryText, size: 50));
-                                    },
-                                  )
-                                : const Center( // Placeholder se não houver imagem
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: Text(
-                                        'Anexo de uma foto opcional, ou então a foto automática que iremos ver ainda',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: AppColors.secondaryText),
-                                      ),
-                                    ),
-                                  ),
-                            ),
+                Container(
+                    width: double.infinity,
+                    height: 320, // Altura fixa para a imagem
+                    decoration: BoxDecoration(
+                      color: AppColors.surface, // Cor de fundo caso a imagem falhe
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect( // Para forçar as bordas arredondadas na imagem
+                      borderRadius: BorderRadius.circular(8),
+                      child: fullImageUrl != null
+                        ? Image.network( // 1. Tenta carregar a imagem da API
+                            fullImageUrl,
+                            fit: BoxFit.cover, // Cobre todo o espaço do container
+                            // Mostra um "Carregando..." enquanto a imagem da rede baixa
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child; // Imagem carregada
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                            // Se a imagem da API falhar (ex: 404), mostra a imagem padrão
+                            errorBuilder: (context, error, stackTrace) {
+                              print("Erro ao carregar imagem da rede: $error. Usando imagem padrão.");
+                              return Image.asset(
+                                'assets/images/tcc-stock.png',fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/tcc-stock.png',
+                            fit: BoxFit.cover, // Cobre todo o espaço
                           ),
-                          const SizedBox(height: 25),
+                    ),
+                  ),
+                          const SizedBox(height: 30),
 
                           // --- Divisor ---
                           const Divider(color: AppColors.secondaryText, thickness: 0.5),
@@ -238,7 +258,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                             _eventDetails!['descricao'] ?? 'Descrição não disponível.',
                             style: const TextStyle(fontSize: 16, height: 1.6, color: AppColors.primaryText), // Mudado para primaryText
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 60),
 
                           // --- Botão de Inscrição ---
                           if (permiteInscricao)
@@ -249,7 +269,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.accent, // Sua cor vermelha
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  padding: const EdgeInsets.symmetric(vertical: 20),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),

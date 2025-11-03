@@ -12,7 +12,7 @@ function LoginPage() {
         setError('');
 
         try {
-            const response = await fetch('http://localhost/EC_back/api/login.php', {
+            const response = await fetch('http://192.168.15.174/EC_back/api/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, senha }),

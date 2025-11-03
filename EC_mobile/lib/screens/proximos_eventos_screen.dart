@@ -29,7 +29,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
 
   Future<void> _fetchUpcomingEvents() async {
     // !!! URL DO NOVO ENDPOINT PHP !!!
-    final url = Uri.parse('http://localhost/EC_back/api/get_proximos_eventos.php');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/get_proximos_eventos.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -109,7 +109,7 @@ itemBuilder: (context, index) {
       child: ExpansionTile(
         // --- SOLUÇÃO 1: DEIXAR O CARD MAIS ALTO ---
         // Adicionamos padding vertical ao título do card "fechado"
-        tilePadding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+        tilePadding: const EdgeInsets.symmetric(vertical: 30.0, horizontal: 16.0),
         
         // O título (cabeçalho do card)
         title: Column(
@@ -122,7 +122,7 @@ itemBuilder: (context, index) {
                   fontWeight: FontWeight.w600,
                   color: AppColors.primaryText),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 30),
             Text(
               _formatApiDate(event['data_evento'] ?? ''),
               style: const TextStyle(
@@ -138,7 +138,7 @@ itemBuilder: (context, index) {
         // O conteúdo que aparece ao expandir
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0),
+            padding: const EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -169,7 +169,7 @@ itemBuilder: (context, index) {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

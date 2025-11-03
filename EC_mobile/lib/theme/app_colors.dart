@@ -6,8 +6,8 @@ class AppColors {
   static const Color surface = Color(0xFF161D2F);
   static const Color surfaceLight = Color(0xFF252c41);
   static const Color sectionBackground = Color(0xFF121825);
-  static const Color accent = Color.fromARGB(255, 240, 33, 33);
-  static const Color accentOrange = Color(0xFFE65100);
+  static const Color accent = Color.fromARGB(220, 240, 28, 28);
+  static const Color accentOrange = Color.fromARGB(220, 240, 28, 28);
   static const Color primaryText = Colors.white;
   static const Color secondaryText = Color(0xFF94A3B8);
 

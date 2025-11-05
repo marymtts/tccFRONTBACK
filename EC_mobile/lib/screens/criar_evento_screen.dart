@@ -72,7 +72,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
     setState(() { _isLoading = true; });
 
     // 2. URL da API (usando o case 'POST' do eventos.php)
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php');
+    final url = Uri.parse('http://localhost/EC_back/api/eventos.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

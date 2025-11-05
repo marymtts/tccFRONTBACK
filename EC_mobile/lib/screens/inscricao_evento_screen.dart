@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:ec_mobile/theme/app_colors.dart'; // Verifique o caminho
 import 'package:provider/provider.dart';
 import 'package:ec_mobile/providers/user_provider.dart';
+import 'package:ec_mobile/widgets/app_drawer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InscricaoEventoScreen extends StatefulWidget {
   final int eventId; // Recebe o ID do evento
@@ -28,7 +30,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   final int _studentId = 123; // Exemplo - Pegue o ID real no futuro
 
   // URL base para construir o caminho completo das imagens
-  final String _imageBaseUrl = 'http://192.168.15.174/EC_back'; // Ajuste se necessário
+  final String _imageBaseUrl = 'http://localhost/EC_back'; // Ajuste se necessário
 
   @override
   void initState() {
@@ -39,7 +41,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   // Busca os detalhes do evento específico na API
   Future<void> _fetchEventDetails() async {
     // URL que busca um evento por ID
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php?id=${widget.eventId}');
+    final url = Uri.parse('http://localhost/EC_back/api/eventos.php?id=${widget.eventId}');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -107,7 +109,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     }
 
     // 3. URL da API que acabamos de criar
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/registrar_participacao.php');
+    final url = Uri.parse('http://localhost/EC_back/api/registrar_participacao.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {
@@ -164,12 +166,94 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     } catch (e) {
       return apiDate;
     }
+  }// lib/screens/inscricao_evento_screen.dart (Dentro da classe _InscricaoEventoScreenState)
+
+  // --- NOVA FUNÇÃO PARA APAGAR O EVENTO ---
+  Future<void> _deleteEvent() async {
+    // 1. Mostrar um diálogo de confirmação
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Confirmar Exclusão'),
+          content: const Text('Você tem certeza que quer apagar este evento? Esta ação não pode ser desfeita.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar', style: TextStyle(color: AppColors.secondaryText)),
+              onPressed: () {
+                Navigator.of(context).pop(false); // Retorna 'false'
+              },
+            ),
+            TextButton(
+              child: const Text('Apagar', style: TextStyle(color: AppColors.accent)),
+              onPressed: () {
+                Navigator.of(context).pop(true); // Retorna 'true'
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    // 2. Se o usuário NÃO confirmou (ou fechou o diálogo), pare aqui.
+    if (confirmed == null || confirmed == false) {
+      return;
+    }
+
+    // 3. Se confirmou, prossiga com a exclusão
+    setState(() { _isLoading = true; }); // Reutiliza o 'isLoading' da tela
+
+    try {
+      // 4. Pega o Token (cartão de acesso) do "cofre"
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('jwt_token');
+
+      if (token == null) {
+        _showFeedbackSnackbar('Erro: Token de admin não encontrado. Faça login novamente.', isError: true);
+        setState(() { _isLoading = false; });
+        return;
+      }
+
+      // 5. URL da API (a mesma que busca, mas usaremos o método DELETE)
+      final url = Uri.parse('http://localhost/EC_back/api/eventos.php?id=${widget.eventId}');
+      // (Lembre-se das URLs de Emulador/Celular Físico)
+
+      // 6. Faz a chamada DELETE, enviando o token no cabeçalho
+      final response = await http.delete(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token', // Envia o token para a API
+        },
+      );
+
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['status'] == 'success') {
+        _showFeedbackSnackbar(responseData['message'] ?? 'Evento apagado com sucesso!', isError: false);
+        
+        // 7. Volta para a tela anterior (pois este evento não existe mais)
+        if (mounted) Navigator.pop(context);
+        
+      } else {
+        // Mostra erro (ex: "Token inválido", "Acesso negado", etc.)
+        _showFeedbackSnackbar(responseData['message'] ?? 'Erro ${response.statusCode}', isError: true);
+      }
+    } catch (e) {
+      print('Erro ao apagar evento: $e');
+      _showFeedbackSnackbar('Erro de conexão ao tentar apagar.', isError: true);
+    } finally {
+      setState(() { _isLoading = false; });
+    }
   }
+
+
 
   // --- Construção da Interface ---
   @override
   Widget build(BuildContext context) {
     // Define a URL da imagem (ou null se não houver)
+    final user = Provider.of<UserProvider>(context, listen: false).user;
     String? imageUrlPath = _eventDetails?['imagem_url'];
     String? fullImageUrl = (imageUrlPath != null && imageUrlPath.isNotEmpty)
                          ? _imageBaseUrl + imageUrlPath // Constrói a URL completa
@@ -261,31 +345,55 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                           const SizedBox(height: 60),
 
                           // --- Botão de Inscrição ---
-                          if (permiteInscricao)
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isRegistering ? null : _registerForEvent, // Chama a função de registro
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.accent, // Sua cor vermelha
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 20),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: _isRegistering // Mostra loading ou texto
-                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Text('Inscrever-se', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          if (!permiteInscricao) // Mensagem se não houver inscrição
-                            const Center(
-                              child: Text(
-                                'Este evento não requer inscrição.',
-                                style: TextStyle(color: AppColors.secondaryText, fontStyle: FontStyle.italic, fontSize: 16),
-                              ),
-                            ),
+                          
+                          // lib/screens/inscricao_evento_screen.dart (no final do build, dentro do Column)
+
+            // --- LÓGICA DE BOTÃO (ADMIN vs ALUNO) ---
+            
+            // Se for ADMIN, mostra o botão "Apagar Evento"
+            if (user != null && user.role == 'admin')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _deleteEvent, // Chama a nova função
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 145, 12, 12), // Cor diferente (ex: cinza escuro)
+                    foregroundColor: const Color.fromARGB(220, 255, 7, 7), // Texto vermelho
+                    padding: const EdgeInsets.symmetric(vertical: 30),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
+                      : const Text('Apagar Evento', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                ),
+              )
+            
+            // Se for ALUNO, mostra o botão "Inscrever-se" (como antes)
+            else if (permiteInscricao)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isRegistering ? null : _registerForEvent,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent, // Seu botão vermelho
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                  ),
+                  child: _isRegistering
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Inscrever-se', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              )
+            
+            // Se não for admin e não tiver inscrição
+            else if (!permiteInscricao)
+              const Center(
+                child: Text(
+                  'Este evento não requer inscrição.',
+                  style: TextStyle(color: AppColors.secondaryText, fontStyle: FontStyle.italic, fontSize: 16),
+                ),
+              ),
+            
+            const SizedBox(height: 20), // Espaço extra no final
                           const SizedBox(height: 20), // Espaço extra no final
                         ],
                       ),

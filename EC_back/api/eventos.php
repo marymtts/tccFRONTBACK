@@ -1,22 +1,33 @@
 <?php
-// Documentação: Endpoints para a gestão de eventos.
+require_once '../vendor/autoload.php';
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
-// Cabeçalhos obrigatórios para a API
+// --- CABEÇALHOS OBRIGATÓRIOS ---
+// Permite que qualquer origem (seu app Flutter) acesse
 header("Access-Control-Allow-Origin: *");
+// Define o tipo de conteúdo que a API VAI RETORNAR
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+// Define QUAIS MÉTODOS o navegador pode usar
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+// Define QUAIS CABEÇALHOS o navegador pode enviar (CRUCIAL!)
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Inclui a conexão com o banco de dados
+// --- CORREÇÃO DE CORS (PRE-FLIGHT) ---
+// Verifica se o navegador está fazendo a "pergunta" OPTIONS
+$method = $_SERVER['REQUEST_METHOD'];
+if ($method == "OPTIONS") {
+
+    http_response_code(200);
+    exit();
+}
+// --- FIM DA CORREÇÃO ---
+// Inclui a conexão com o banco
 include_once '../config/database.php';
 
 // Instancia o objeto de banco de dados
 $database = new Database();
 $db = $database->getConnection();
-
-// Obtém o método da requisição
-$method = $_SERVER['REQUEST_METHOD'];
-
 // Lógica para cada método HTTP
 switch ($method) {
     // --- CASO GET: Buscar eventos ---
@@ -226,25 +237,72 @@ switch ($method) {
         }
         break; 
 
-    // --- CASO DELETE: Excluir um evento ---
+    // --- CASO DELETE: Excluir um evento (PROTEGIDO) ---
     case 'DELETE':
+        // --- INÍCIO DA VALIDAÇÃO DE ADMIN ---
+        $authHeader = null;
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['HTTP_X_AUTHORIZATION'])) { // Fallback
+            $authHeader = $_SERVER['HTTP_X_AUTHORIZATION'];
+        } else {
+            http_response_code(401); // Unauthorized
+            echo json_encode(array("message" => "Acesso negado. Token de autorização não fornecido."));
+            exit();
+        }
+
+        $token = null;
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+
+        if (!$token) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(array("message" => "Acesso negado. Token mal formatado."));
+            exit();
+        }
+
+        try {
+            $secret_key = "2h7B!_J4CL4j*nFRwQupt_1zd~Z?QtX%LQ0yW4V#"; // Sua chave secreta
+            $decoded = JWT::decode($token, new Key($secret_key, 'HS256'));
+            
+            // VERIFICA SE O CARGO É 'admin'
+            if ($decoded->data->role !== 'admin') {
+                http_response_code(403); // Forbidden
+                echo json_encode(array("message" => "Acesso negado. Apenas administradores podem apagar eventos."));
+                exit();
+            }
+        } catch (Exception $e) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(array("message" => "Acesso negado. Token inválido ou expirado.", "error" => $e->getMessage()));
+            exit();
+        }
+        // --- FIM DA VALIDAÇÃO DE ADMIN ---
+
+        // Se chegou até aqui, o usuário é um admin. Prossiga com o delete.
         $id = isset($_GET['id']) ? intval($_GET['id']) : null;
 
         if ($id) {
+            // TODO: Antes de apagar o evento, seria bom apagar a imagem
+            // (se houver) da pasta /uploads/eventos/
+            
             $query = "DELETE FROM eventos WHERE id = :id";
             $stmt = $db->prepare($query);
             $stmt->bindParam(':id', $id);
 
             if ($stmt->execute()) {
+                // Também é uma boa prática apagar as participações associadas
+                $db->prepare("DELETE FROM participacao WHERE id_evento = :id")->execute([':id' => $id]);
+
                 http_response_code(200); // OK
-                echo json_encode(array("message" => "Evento excluído com sucesso."));
+                echo json_encode(array("status" => "success", "message" => "Evento excluído com sucesso."));
             } else {
                 http_response_code(503); // Service Unavailable
-                echo json_encode(array("message" => "Não foi possível excluir o evento."));
+                echo json_encode(array("status" => "error", "message" => "Não foi possível excluir o evento."));
             }
         } else {
             http_response_code(400); // Bad Request
-            echo json_encode(array("message" => "ID não fornecido."));
+            echo json_encode(array("status" => "error", "message" => "ID não fornecido."));
         }
         break;
 

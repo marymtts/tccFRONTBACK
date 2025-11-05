@@ -42,7 +42,7 @@ class _MeusEventosScreenState extends State<MeusEventosScreen> {
     final int alunoId = user.id;
 
     // 3. Chama a NOVA API com o ID do aluno
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/get_meus_eventos.php?id_aluno=$alunoId');
+    final url = Uri.parse('http://localhost/EC_back/api/get_meus_eventos.php?id_aluno=$alunoId');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

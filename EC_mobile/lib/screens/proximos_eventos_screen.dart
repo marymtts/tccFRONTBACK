@@ -29,7 +29,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
 
   Future<void> _fetchUpcomingEvents() async {
     // !!! URL DO NOVO ENDPOINT PHP !!!
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/get_proximos_eventos.php');
+    final url = Uri.parse('http://localhost/EC_back/api/get_proximos_eventos.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

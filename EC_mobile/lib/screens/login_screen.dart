@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _isLoading = true; });
 
     // URL da API de Login
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/login.php');
+    final url = Uri.parse('http://localhost/EC_back/api/login.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

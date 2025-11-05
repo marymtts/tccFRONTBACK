@@ -16,7 +16,7 @@ function Eventos() {
     useEffect(() => {
         const fetchEventos = async () => {
             try {
-                const response = await fetch('http://192.168.15.174/EC_back/api/eventos.php');
+                const response = await fetch('http://localhost/EC_back/api/eventos.php');
                 if (!response.ok) throw new Error('A resposta da rede não foi OK');
                 const data = await response.json();
                 setEventos(data);

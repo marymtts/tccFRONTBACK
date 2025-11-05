@@ -1,7 +1,9 @@
 // ignore_for_file: avoid_print, sort_child_properties_last
 
 import 'dart:convert'; 
+import 'package:ec_mobile/screens/calendario_screen.dart';
 import 'package:ec_mobile/screens/login_screen.dart';
+import 'package:ec_mobile/screens/meus_eventos_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; 
@@ -74,156 +76,64 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
   String _errorMessage = '';
   // --- FIM DA MUDANÇA 1 ---
 
-  // --- MUDANÇA 2: Adicionar initState e a função da API ---
-  @override
-  void initState() {
-    super.initState();
-    _fetchFeaturedEvents();
-  }
+  
 
-  Future<void> _fetchFeaturedEvents() async {
-    // !!! MUDE A URL para o seu endpoint de eventos em destaque !!!
-    // Exemplo: 'http://192.168.15.174/EC_back/api/get_eventos_destaque.php'
-    // Por enquanto, vou usar o mesmo endpoint de todos os eventos
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php');
-
-    // (Lembre-se das URLs para Emulador/Celular Físico se precisar)
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-
-        // ATENÇÃO: Se você tiver um endpoint que retorna SÓ os destaques,
-        // talvez não precise filtrar. Se não, filtre aqui.
-        // Exemplo simples: Pegar os 3 primeiros eventos
-        final List<dynamic> featured = data.take(3).toList(); 
-
-        setState(() {
-          _featuredEvents = featured; // Guarda os eventos filtrados
-          _isLoading = false;
-        });
-
-      } else {
-        setState(() {
-          _errorMessage = 'Falha ao carregar eventos (Erro ${response.statusCode})';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print(e);
-      setState(() {
-        _errorMessage = 'Erro de conexão. Verifique o XAMPP e a URL.';
-        _isLoading = false;
-      });
-    }
-  }
-  // --- FIM DA MUDANÇA 2 ---
-
-
- // Dentro da classe _HomeScreenState
+  // Dentro da _HomeScreenState
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const AppDrawer(currentPage: 'Início'),
-      appBar: AppBar(
+      drawer: const AppDrawer(currentPage: 'Início'), // Seu drawer (continua igual)
+      appBar: AppBar( // Seu appBar (continua igual)
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
-        title: Row(
+        title: Row( /* ... seu código do título ... */ ),
+        actions: [ /* ... seu código do botão "Divulgue!" ... */ ],
+      ),
+      
+      // --- O NOVO BODY (SEM LOADING/ERRO) ---
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.calendar_month, color: AppColors.accent, size: 28),
-            const SizedBox(width: 8),
-            RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primaryText,
-                ),
+            // Seção "Hero" e "Navegação" (fundo principal)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextSpan(text: 'Eventos '),
-                  TextSpan(
-                    text: 'Cotil',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const SizedBox(height: 80), 
+                  _buildHeroSection(), // Continua igual
+                  const SizedBox(height: 80),
+                  _buildNavigationSection(), // <-- A NOVA SEÇÃO DE BOTÕES
                 ],
+              ),
+            ),
+            
+            // Seção "Quem Somos" e Rodapé (fundo secundário)
+            Container(
+              width: double.infinity, 
+              color: AppColors.sectionBackground, // Use a cor de contraste que você gostou
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 80),
+                    _buildAboutUsSection(), // Continua igual
+                    const SizedBox(height: 80),
+                    _buildCtaSection(), // Continua igual
+                    const SizedBox(height: 80),
+                    _buildFooter(), // Continua igual
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: TextButton(
-              onPressed: () {},
-              child: const Text('Divulgue!'),
-              style: TextButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            ),
-          ),
-        ],
       ),
-      // --- AQUI ESTÁ A CORREÇÃO PARA CARREGANDO/ERRO ---
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Mostra o círculo de carregamento
-          : _errorMessage.isNotEmpty
-              ? Center( // Mostra a mensagem de erro se ela existir
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      _errorMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red, fontSize: 16),
-                    ),
-                  ),
-                )
-              : SingleChildScrollView( // Mostra o conteúdo principal se não houver erro e não estiver carregando
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Conteúdo com fundo principal
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 80),
-                            _buildHeroSection(),
-                            const SizedBox(height: 80),
-                            _buildEventsSection(), // Usa os dados da API
-                          ],
-                        ),
-                      ),
-                      // Conteúdo com fundo secundário
-                      Container(
-                        width: double.infinity,
-                        color: AppColors.sectionBackground,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 80),
-                              _buildAboutUsSection(),
-                              const SizedBox(height: 80),
-                              _buildCtaSection(),
-                              const SizedBox(height: 80),
-                              _buildFooter(),
-                              const SizedBox(height: 40),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-      // --- FIM DA CORREÇÃO ---
     );
   }
   // --- FIM DA MUDANÇA 3 ---
@@ -289,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
   Widget _buildAboutUsSection() {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
+    children: [ 
       const Text(
         'Quem somos?',
         style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
@@ -350,6 +260,7 @@ Widget _buildCtaSection() {
             padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
+              
               gradient: const LinearGradient(
                 colors: [AppColors.accentOrange, AppColors.accent],
                 begin: Alignment.centerLeft,
@@ -383,132 +294,161 @@ Widget _buildFooter() {
   );
 }
 
-
-  // --- MUDANÇA 4: Modificar _buildEventsSection ---
-  Widget _buildEventsSection() {
+  Widget _buildNavigationSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Por onde você quer começar?',
+          
           style: TextStyle(
+            
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryText,
+            color: AppColors.primaryText , 
+            
           ),
         ),
         const SizedBox(height: 20),
 
-        // A MÁGICA: Em vez de chamadas fixas, fazemos um loop
-        // sobre a lista _featuredEvents que veio da API.
-        Column(
-          children: _featuredEvents.map((event) {
-            // Para cada 'event' na lista, criamos um Card
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20.0), // Adiciona espaço entre cards
-              child: _buildEventCard(
-                // !!! MUDE AQUI para usar as chaves do seu JSON !!!
-                icon: _getIconForEvent(event['titulo'] ?? ''), // Função auxiliar para ícone (exemplo)
-                iconColor: _getColorForEvent(event['titulo'] ?? ''), // Função auxiliar para cor (exemplo)
-                date: _formatApiDate(event['data_evento'] ?? ''), // Função auxiliar para formatar data
-                title: event['titulo'] ?? 'Título indisponível',
-                description: event['descricao'] ?? 'Descrição indisponível', // Use a descrição curta se tiver
-                linkText: (event['inscricao'] ?? 0) == 1 ? 'Inscreva-se Agora' : 'Saiba Mais',
-              ),
+        // Botão 1: Próximos Eventos
+        _buildNavCard(
+          
+          icon: Icons.view_agenda_outlined,
+          title: 'Próximos Eventos',
+          subtitle: 'Fique por dentro do que está por vir!',
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- PASSANDO A COR AZUL
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
             );
-          }).toList(), // Transforma o resultado do map em uma lista de Widgets
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Botão 2: Calendário
+        _buildNavCard(
+          icon: Icons.calendar_today,
+          title: 'Calendário',
+          subtitle: 'Explore e programe suas participações',
+          
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- PASSANDO A COR ROSA
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CalendarioScreen()),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+       _buildNavCard(
+          icon: Icons.check_circle, // Ícone sólido
+          title: 'Meus Eventos',
+          subtitle: 'Eventos em que você está inscrito',
+          iconBackgroundColor: AppColors.iconBgMeusEventos,
+          onTap: () {
+            final user = Provider.of<UserProvider>(context, listen: false).user;
+            if (user != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MeusEventosScreen()),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            }
+          },
         ),
       ],
     );
   }
-  // --- FIM DA MUDANÇA 4 ---
 
+ // lib/main.dart (Dentro da _HomeScreenState)
 
-  // A função _buildEventCard continua IGUAL.
-  // Ela já recebe os dados como parâmetros.
-  Widget _buildEventCard({
+  // --- O NOVO WIDGET DE BOTÃO (ÍCONE QUADRADO) ---
+  Widget _buildNavCard({
     required IconData icon,
-    required Color iconColor,
-    required String date,
     required String title,
-    required String description,
-    required String linkText,
+    required String subtitle,
+    required Color iconBackgroundColor, // <-- 1. RECEBE A COR
+    required VoidCallback onTap,
   }) {
-    /* ... seu código do _buildEventCard ... */
-     return Container(
-       padding: const EdgeInsets.all(20),
-       decoration: BoxDecoration(
-         color: AppColors.surface,
-         borderRadius: BorderRadius.circular(8),
-       ),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Container(
-             padding: const EdgeInsets.all(12),
-             decoration: BoxDecoration(
-               color: iconColor,
-               borderRadius: BorderRadius.circular(8),
-             ),
-             child: Icon(icon, size: 24, color: Colors.white),
-           ),
-           const SizedBox(height: 15),
-           Text(date, style: const TextStyle(color: AppColors.secondaryText, fontSize: 12)),
-           const SizedBox(height: 5),
-           Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.primaryText)),
-           const SizedBox(height: 10),
-           Text(description, style: const TextStyle(color: AppColors.secondaryText, height: 1.5)),
-           const SizedBox(height: 20),
-           // Adicionar Navegação ao clicar no link
-           InkWell( 
-             onTap: () {
-               // 
-               // Ex: Navigator.push(context, MaterialPageRoute(builder: (_) => DetalheScreen(eventId: event['id'])));
-             },
-             child: Row(
-               children: [
-                 Text(
-                   linkText,
-                   style: const TextStyle(
-                     fontWeight: FontWeight.bold,
-                     color: AppColors.primaryText, 
-                   ),
-                 ),
-                 const SizedBox(width: 5),
-                 const Icon(Icons.arrow_forward, size: 16, color: AppColors.primaryText),
-               ],
-             ),
-           )
-         ],
-       ),
-     );
+    return Card(
+      color: AppColors.surface,
+      elevation: 5,
+      shadowColor: Colors.black.withOpacity(0.4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: iconBackgroundColor.withOpacity(0.2), // Efeito de clique
+        child: Padding(
+          padding: const EdgeInsets.all(24.0), // Padding "grosso"
+          child: Row(
+            children: [
+              // --- 2. O ÍCONE QUADRADO ---
+              Container(
+                width: 60,  // Tamanho grande
+                height: 60, // Tamanho grande
+                decoration: BoxDecoration(
+                  color: iconBackgroundColor, // <-- 3. USA A COR SÓLIDA
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                  BoxShadow(
+                    color: iconBackgroundColor.withOpacity(0.4), // Sombra da mesma cor
+                    blurRadius: 15.0,   // "Esfumaçado" do bloom
+                    spreadRadius: 3.0,    // Espalha o brilho
+                    offset: const Offset(0, 6), // Deslocamento para baixo
+                  ),
+                ], // <-- Deixa "quadrado"
+                  // (Removido o gradient e a sombra no ícone)
+                ),
+                child: Icon(icon, color: Colors.white, size: 30), // Ícone maior
+              ),
+              const SizedBox(width: 20),
+              
+              // Textos (continuam iguais)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const Icon(Icons.arrow_forward_ios, color: AppColors.secondaryText, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
 
   // --- MUDANÇA 5: Funções Auxiliares (Exemplos) ---
   // Você precisará criar lógicas para escolher ícone/cor e formatar data
-  IconData _getIconForEvent(String title) {
-    if (title.toLowerCase().contains('palestra')) return Icons.biotech;
-    if (title.toLowerCase().contains('hackathon')) return Icons.code;
-    return Icons.event; // Ícone padrão
-  }
 
-  Color _getColorForEvent(String title) {
-    if (title.toLowerCase().contains('palestra')) return AppColors.iconBlue;
-    if (title.toLowerCase().contains('hackathon')) return AppColors.iconPink;
-    return AppColors.iconGreen; // Cor padrão
-  }
 
-  String _formatApiDate(String apiDate) {
-    try {
-      // Converte 'AAAA-MM-DD' para DateTime
-      final DateTime parsedDate = DateTime.parse(apiDate);
-      // Formata para 'DD de MMMM, HH:mm' (ou o formato que preferir)
-      return DateFormat('dd \'de\' MMMM', 'pt_BR').format(parsedDate); 
-    } catch (e) {
-      return apiDate; // Retorna a string original se a formatação falhar
-    }
-  }
   // --- FIM DA MUDANÇA 5 ---
 
 } // Fim da classe _HomeScreenState

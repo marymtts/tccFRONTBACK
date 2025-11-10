@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./components/header";
+import DarkVeil from "./components/DarkVeil";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +24,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <div className="fundo" style={{ width: '100%', height: '600px', position: 'relative' }}>
+        <DarkVeil />
+        </div>
         <Header />
         <br/>
         <br/>
@@ -33,6 +37,7 @@ export default function RootLayout({ children }) {
         <br/>
         <br/>
         {children}
+        </div>
       </body>
     </html>
   );

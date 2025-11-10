@@ -1,11 +1,15 @@
 // lib/screens/conta_screen.dart
+import 'dart:convert';
+import 'package:ec_mobile/models/user.dart';
+import 'package:ec_mobile/providers/user_provider.dart';
+import 'package:ec_mobile/screens/editar_conta_screen.dart';
+import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // Para o QR Code
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:ec_mobile/providers/user_provider.dart'; // Nosso provedor
-import 'package:ec_mobile/screens/login_screen.dart'; // Tela de login
-import 'package:ec_mobile/theme/app_colors.dart';
+import 'package:ec_mobile/screens/login_screen.dart'; // Para navegar no logout
 
 class ContaScreen extends StatefulWidget {
   const ContaScreen({super.key});
@@ -15,162 +19,218 @@ class ContaScreen extends StatefulWidget {
 }
 
 class _ContaScreenState extends State<ContaScreen> {
-  // Controladores para os campos (preparando para a edição futura)
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _raController = TextEditingController();
-
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Pega o usuário do provider e preenche os campos
-    // 'listen: false' é importante dentro do initState
-    final user = Provider.of<UserProvider>(context, listen: false).user;
-    if (user != null) {
-      _nomeController.text = user.nome;
-      _emailController.text = user.email;
-      _raController.text = user.ra!; // Assumindo que seu User model tem 'ra'
-    }
-  }
-
-  // --- A FUNÇÃO DE LOGOUT ---
+  // (Removemos os controllers, pois não vamos mais editar os campos aqui)
+  
+  // Função de Logout (vinda do seu AppDrawer/código anterior)
   Future<void> _logout() async {
-    setState(() { _isLoading = true; });
-
-    // 1. Apaga o token do "cofre" (SharedPreferences)
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
 
-    // 2. Limpa o usuário do "provedor" (UserProvider)
-    // 'listen: false' é usado dentro de funções
+    if (!mounted) return;
     Provider.of<UserProvider>(context, listen: false).clearUser();
 
-    // 3. Garante que estamos com o contexto certo antes de navegar
-    if (!mounted) return;
-
-    // 4. Navega para a tela de Login e LIMPA TODAS as telas anteriores
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (Route<dynamic> route) => false, // Remove todas as rotas
+      (Route<dynamic> route) => false,
     );
   }
 
-  // TODO: Função para atualizar o nome (próximo passo)
-  Future<void> _updateProfile() async {
-    // Aqui virá a lógica de chamar a API 'atualizar_aluno.php'
-    // ...enviando _nomeController.text, etc.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de salvar ainda não implementada.')),
-    );
-  }
-
+  // (Removemos a lógica de "Deletar Conta" como você pediu)
 
   @override
   Widget build(BuildContext context) {
-    // Pega o usuário do provider (aqui 'listen: true' é o padrão)
-    // final user = Provider.of<UserProvider>(context).user;
-    // Se não tiver usuário (algo deu muito errado), volta para o login
-    // if (user == null) {
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
-    //   });
-    //   return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    // }
+    // Pega o usuário logado do provider
+    final user = Provider.of<UserProvider>(context).user;
 
+    // Se o usuário não carregou (raro, mas seguro)
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Minha Conta')),
+        body: Center(child: Text('Erro: Usuário não encontrado.')),
+      );
+    }
+
+    // --- ESTA É A NOVA TELA ---
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minha Conta'),
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Mostra loading (ao deslogar)
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  // Campo RA (desabilitado para edição)
-                  TextFormField(
-                    controller: _raController,
-                    readOnly: true, // Não pode editar o RA
-                    decoration: _buildInputDecoration('RA'),
-                    style: const TextStyle(color: AppColors.secondaryText),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Campo Nome (habilitado para edição)
-                  TextFormField(
-                    controller: _nomeController,
-                    decoration: _buildInputDecoration('Nome Completo'),
-                    keyboardType: TextInputType.name,
-                  ),
-                  const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Faz botões esticarem
+          children: [
+            
+            // --- 1. O NOVO "CARTÃO DE PERFIL" ---
+            _buildProfileHeader(user),
+            
+            const SizedBox(height: 30),
 
-                  // Campo Email (desabilitado para edição)
-                  TextFormField(
-                    controller: _emailController,
-                    readOnly: true, // Não pode editar o email (geralmente)
-                    decoration: _buildInputDecoration('Email'),
-                    style: const TextStyle(color: AppColors.secondaryText),
-                  ),
-                  const SizedBox(height: 30),
+            // --- 2. O CARTÃO DE QR CODE (SÓ PARA ALUNOS) ---
+            // (Um Admin não precisa de QR Code de entrada)
+            if (user.role == 'aluno') ...[
+              _buildQrCodeCard(user),
+              const SizedBox(height: 30),
+            ],
 
-                  // Botão Salvar Alterações
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _updateProfile, // Chama a função (futura) de salvar
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                      ),
-                      child: const Text('Salvar Alterações', style: TextStyle(fontSize: 18)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Botão Sair (Logout)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton( // Botão com estilo diferente
-                      onPressed: _logout, // Chama a função de logout
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.secondaryText,
-                        side: const BorderSide(color: AppColors.secondaryText),
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                      ),
-                      child: const Text('Sair (Logout)', style: TextStyle(fontSize: 18)),
-                    ),
-                  ),
-                ],
+            // --- 3. BOTÃO DE SAIR ---
+            // (Removemos o "Salvar Alterações" pois não há mais campos)
+            OutlinedButton(
+              onPressed: _logout, // Chama a função de logout
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.secondaryText,
+                side: BorderSide(color: AppColors.secondaryText.withOpacity(0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
+              child: const Text('Sair (Logout)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Função auxiliar de estilo (copiada do register_screen)
-  InputDecoration _buildInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.secondaryText),
-      filled: true,
-      fillColor: AppColors.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
+  Widget _buildProfileHeader(User user) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface, // Seu fundo de card
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          )
+        ],
       ),
-      // Estilo para quando o campo está desabilitado (readOnly)
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.transparent),
+      child: Stack( 
+        children: [
+          // --- O CONTEÚDO ---
+          // Adicionei um Alignment.center para centralizar a coluna principal
+          // e o padding é para dar um respiro em volta do conteúdo.
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Align( // <--- NOVA LINHA AQUI
+              alignment: Alignment.center, // <--- NOVA LINHA AQUI
+              child: Column(
+                children: [
+                  // O Avatar
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppColors.accent,
+                    child: Text(
+                      user.nome.isNotEmpty ? user.nome[0].toUpperCase() : 'U',
+                      style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Nome
+                  Text(
+                    user.nome,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.primaryText,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Email
+                  Text(
+                    user.email,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.secondaryText,
+                      fontSize: 16,
+                    ),
+                  ),
+                  // RA (só para alunos)
+                  if (user.role == 'aluno' && user.ra != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'RA: ${user.ra}',
+                        style: const TextStyle(
+                          color: AppColors.secondaryText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ), // <--- NOVA LINHA AQUI
+          ),
+
+          // --- O "BOTÃOZINHO" DE EDITAR ---
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: Icon(Icons.edit_outlined, color: AppColors.secondaryText, size: 20),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EditarContaScreen()),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.accent),
+    );
+  }
+
+  // --- WIDGET AUXILIAR: Cartão do QR Code (NOVO) ---
+  Widget _buildQrCodeCard(User user) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 30.0, horizontal: 24.0),
+        child: Column(
+          children: [
+            const Text(
+              'Meu QR Code de Entrada',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryText),
+            ),
+            const SizedBox(height: 24),
+            // O QR Code
+            Container(
+              padding: const EdgeInsets.all(12), // Borda branca
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: QrImageView(
+                data: user.id.toString(), // O QR Code contém o ID do usuário
+                version: QrVersions.auto,
+                size: 200.0,
+                foregroundColor: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Apresente este código na entrada do evento.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.secondaryText, fontSize: 16),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:ec_mobile/providers/user_provider.dart'; // Para pegar o ID do aluno
 import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:ec_mobile/screens/inscricao_evento_screen.dart'; // Para navegar para os detalhes
+import 'package:ec_mobile/widgets/custom_app_bar.dart'; // Novo import
 
 class MeusEventosScreen extends StatefulWidget {
   const MeusEventosScreen({super.key});
@@ -42,7 +43,7 @@ class _MeusEventosScreenState extends State<MeusEventosScreen> {
     final int alunoId = user.id;
 
     // 3. Chama a NOVA API com o ID do aluno
-    final url = Uri.parse('http://localhost/EC_back/api/get_meus_eventos.php?id_aluno=$alunoId');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/get_meus_eventos.php?id_aluno=$alunoId');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

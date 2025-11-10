@@ -78,11 +78,11 @@ if ($user_data !== null && $user_role !== null) {
     
     // --- GERAÇÃO DO TOKEN JWT (COM A ROLE) ---
     $secret_key = "2h7B!_J4CL4j*nFRwQupt_1zd~Z?QtX%LQ0yW4V#"; // Você DEVE mudar isso!
-    $issuer_claim = "http://localhost"; 
-    $audience_claim = "http://localhost";
+    $issuer_claim = "http://192.168.15.174"; 
+    $audience_claim = "http://192.168.15.174";
     $issuedat_claim = time(); 
     $notbefore_claim = $issuedat_claim; 
-    $expire_claim = $issuedat_claim + 3600; // Expira em 1 hora
+    $expire_claim = $issuedat_claim + 3600 * 8; // Expira em 8 horas
 
     $token = array(
         "iss" => $issuer_claim,

@@ -1,4 +1,7 @@
 // lib/widgets/app_drawer.dart
+import 'package:ec_mobile/screens/admin_controle_selecionar_screen.dart';
+import 'package:ec_mobile/screens/admin_selecionar_evento_screen.dart';
+import 'package:ec_mobile/screens/scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,12 +18,37 @@ import 'package:ec_mobile/screens/login_screen.dart'; // Para o Logout
 import 'package:shared_preferences/shared_preferences.dart'; // Para o Logout
 import 'package:ec_mobile/screens/criar_evento_screen.dart';
 
+// -----------------------------------------------------------------
+// CLASSE 1: O CONTAINER (O DRAWER LATERAL QUE VOCÊ JÁ TINHA)
+// -----------------------------------------------------------------
+// (Nós não vamos mais usar esta, mas é bom manter)
 class AppDrawer extends StatelessWidget {
   final String currentPage;
 
   const AppDrawer({super.key, required this.currentPage});
 
-  // --- FUNÇÃO DE LOGOUT (Centralizada aqui) ---
+  @override
+  Widget build(BuildContext context) {
+    // O Drawer lateral original
+    return Drawer(
+      backgroundColor: AppColors.surface,
+      // Agora ele só chama o "Conteúdo"
+      child: AppDrawerContent(currentPage: currentPage),
+    );
+  }
+}
+
+
+// -----------------------------------------------------------------
+// CLASSE 2: O CONTEÚDO (O QUE VAI APARECER NO MENU DE BAIXO)
+// -----------------------------------------------------------------
+// (Esta é a classe que tem todo o seu código)
+class AppDrawerContent extends StatelessWidget {
+  final String currentPage;
+
+  const AppDrawerContent({super.key, required this.currentPage});
+
+  // --- FUNÇÃO DE LOGOUT (Movida para cá) ---
   Future<void> _logout(BuildContext context) async {
     // 1. Apaga o token do "cofre"
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -40,160 +68,12 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // PASSO 1: Lê o usuário logado (do Provider)
-    final user = Provider.of<UserProvider>(context).user;
-
-    return Drawer(
-      // --- MANTÉM O TEMA ESCURO ---
-      backgroundColor: AppColors.surface, // Seu fundo escuro original
-
-      child: ListView(
-        padding: EdgeInsets.zero, // Remove o espaço no topo
-        children: [
-          // --- MUDANÇA: O Novo Cabeçalho do Perfil ---
-          // Substitui o DrawerHeader antigo pelo novo
-          _buildProfileHeader(user), 
-
-          // --- Itens do Menu (com cores escuras) ---
-          _buildNavItem(
-            context,
-            icon: Icons.home_outlined,
-            title: 'Início',
-            pageName: 'Início',
-            currentPage: currentPage,
-            onTap: () {
-              Navigator.pop(context);
-              if (currentPage != 'Início') {
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (context) => const HomeScreen()));
-              }
-            },
-          ),
-          
-          
-          _buildNavItem(
-            context,
-            icon: Icons.calendar_today_outlined,
-            title: 'Calendário',
-            pageName: 'Calendário',
-            currentPage: currentPage,
-            onTap: () {
-              Navigator.pop(context);
-              if (currentPage != 'Calendário') {
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (context) => const CalendarioScreen()));
-              }
-            },
-          ),
-
-          // --- Itens que dependem do Login ---
-          
-          if (user != null) // Só mostra se estiver logado
-            _buildNavItem(
-              context,
-              icon: Icons.person_outline,
-              title: 'Minha Conta',
-              pageName: 'Conta',
-              currentPage: currentPage,
-              onTap: () {
-                Navigator.pop(context);
-                if (currentPage != 'Conta') {
-                  Navigator.push(
-                      context, MaterialPageRoute(builder: (context) => const ContaScreen()));
-                }
-              },
-            ),
-
-         // if (user != null && user.role == 'aluno') // Só para alunos
-            _buildNavItem(
-              context,
-              icon: Icons.check_circle_outline,
-              title: 'Meus Eventos',
-              pageName: 'MeusEventos',
-              currentPage: currentPage,
-              onTap: () {
-                Navigator.pop(context);
-                if (currentPage != 'MeusEventos') {
-                  Navigator.push(
-                      context, MaterialPageRoute(builder: (context) => const MeusEventosScreen()));
-                }
-              },
-            ),
-
-          // --- Item de Admin (Comentado) ---
-          
-          if (user != null && user.role == 'admin')
-            _buildNavItem(
-              context,
-              icon: Icons.qr_code_scanner,
-              title: 'Validar Entradas',
-              pageName: 'Validar',
-              currentPage: currentPage,
-              onTap: () { /* ... */ },
-            ),
-
-          // (Linha 152)
-             _buildNavItem(
-              context,
-              icon: Icons.add_circle_outline, // ícone de "adicionar"
-              title: 'Criar Evento',
-              pageName: 'CriarEvento', // <-- MUDANÇA AQUI
-              currentPage: currentPage,  // <-- MUDANÇA AQUI
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CriarEventoScreen()),
-                );
-              },
-            ),
-          
-
-          // Linha divisória (agora com cor clara)
-          if (user != null)
-             const Padding(
-               padding: EdgeInsets.symmetric(horizontal: 16.0),
-               child: Divider(color: AppColors.secondaryText, height: 1),
-             ),
-
-          // --- Item de Sair/Entrar ---
-          if (user != null) // Se está logado, mostra "Sair"
-            _buildNavItem(
-              context,
-              icon: Icons.logout,
-              title: 'Sair',
-              pageName: 'Sair',
-              currentPage: currentPage,
-              onTap: () => _logout(context), // Chama a função de logout
-            )
-          else // Se está deslogado, mostra "Entrar"
-            _buildNavItem(
-              context,
-              icon: Icons.login,
-              title: 'Entrar',
-              pageName: 'Login',
-              currentPage: currentPage,
-              onTap: () {
-                 Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (Route<dynamic> route) => false,
-                  );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  // --- Constrói o novo cabeçalho com TEMA ESCURO ---
+  // --- Constrói o cabeçalho (Movido para cá) ---
   Widget _buildProfileHeader(User? user) {
-    // Se o usuário estiver deslogado, mostra um cabeçalho simples
+    // Se o usuário estiver deslogado
     if (user == null) {
       return const DrawerHeader(
-        decoration: BoxDecoration(color: AppColors.background), // Cor de fundo mais escura
+        decoration: BoxDecoration(color: AppColors.background), 
         child: Center(
           child: Text(
             'Bem-vindo ao Eventos Cotil',
@@ -202,24 +82,21 @@ class AppDrawer extends StatelessWidget {
         ),
       );
     }
-
-    // Se estiver logado, mostra o perfil (layout da foto, cores do seu app)
+    // Se estiver logado
     return Container(
-      color: AppColors.background, // Cor de fundo mais escura
+      color: AppColors.background,
       padding: const EdgeInsets.only(top: 50.0, bottom: 20.0, left: 20.0, right: 20.0),
       child: Row(
         children: [
-          // Avatar (círculo roxo com a inicial)
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppColors.accent, // Sua cor vermelha/destaque
+            backgroundColor: AppColors.accent,
             child: Text(
               user.nome.isNotEmpty ? user.nome[0].toUpperCase() : 'U',
               style: const TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 15),
-          // Coluna com Nome e Email (ou RA)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,11 +109,11 @@ class AppDrawer extends StatelessWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
-                  overflow: TextOverflow.ellipsis, // Evita quebrar o nome
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  user.email, // Você pode trocar por user.ra se preferir
+                  user.email,
                   style: const TextStyle(
                     color: AppColors.secondaryText,
                     fontSize: 14,
@@ -251,8 +128,8 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-
-  // --- Ajusta as cores dos itens para o TEMA ESCURO ---
+  // --- Constrói os itens do menu (Movido para cá) ---
+  // --- Ajusta as cores E O TAMANHO dos itens para o TEMA ESCURO ---
   Widget _buildNavItem(
     BuildContext context, {
     required IconData icon,
@@ -268,14 +145,24 @@ class AppDrawer extends StatelessWidget {
     final Color color = isActive ? AppColors.accent : AppColors.secondaryText;
     final Color? tileColor = isActive ? AppColors.accent.withOpacity(0.1) : null;
 
+    // --- 1. AUMENTA O PADDING VERTICAL ---
+    // Isso torna cada item mais "alto" ou "robusto"
+    // (O padrão é 8.0, vamos aumentar bastante)
+    const EdgeInsets itemPadding = EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0);
+
+    // --- 2. AUMENTA O TAMANHO DO ÍCONE E DA FONTE ---
+    const double iconSize = 28.0;
+    const double fontSize = 18.0;
+
     return ListTile(
-      leading: Icon(icon, color: color),
+      contentPadding: itemPadding, // <-- APLICA O PADDING
+      leading: Icon(icon, color: color, size: iconSize), // <-- APLICA O TAMANHO DO ÍCONE
       title: Text(
         title,
         style: TextStyle(
           color: color,
           fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          fontSize: 16,
+          fontSize: fontSize, // <-- APLICA O TAMANHO DA FONTE
         ),
       ),
       tileColor: tileColor, // Cor de fundo se estiver ativo
@@ -283,6 +170,164 @@ class AppDrawer extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       onTap: onTap,
+    );
+  }
+  @override
+  Widget build(BuildContext context) {
+    // 1. Pega o usuário logado
+    final user = Provider.of<UserProvider>(context).user;
+    
+    // 2. Retorna SÓ o ListView (sem o Drawer)
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _buildProfileHeader(user), // O cabeçalho do perfil
+
+        // --- Itens Normais (para todos) ---
+        _buildNavItem(
+            context,
+            icon: Icons.home_outlined,
+            title: 'Início',
+            pageName: 'Início',
+            currentPage: currentPage,
+            onTap: () {
+              Navigator.pop(context); // Fecha o menu de baixo
+              if (currentPage != 'Início') {
+                Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+              }
+            },
+          ),
+          
+          _buildNavItem(
+            context,
+            icon: Icons.calendar_today_outlined,
+            title: 'Calendário',
+            pageName: 'Calendário',
+            currentPage: currentPage,
+            onTap: () {
+              Navigator.pop(context); // Fecha o menu de baixo
+              if (currentPage != 'Calendário') {
+                Navigator.pushReplacement(
+                    context, MaterialPageRoute(builder: (context) => const CalendarioScreen()));
+              }
+            },
+          ),
+
+        // --- Seção do Usuário LOGADO ---
+        if (user != null) ...[ 
+          _buildNavItem(
+            context,
+            icon: Icons.person_outline,
+            title: 'Minha Conta',
+            pageName: 'Conta',
+            currentPage: currentPage,
+            onTap: () {
+              Navigator.pop(context); // Fecha o menu de baixo
+              if (currentPage != 'Conta') {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (context) => const ContaScreen()));
+              }
+            },
+          ),
+
+          // --- SEÇÃO DO ALUNO ---
+          if (user.role == 'aluno')
+            _buildNavItem(
+              context,
+              icon: Icons.check_circle_outline,
+              title: 'Meus Eventos',
+              pageName: 'MeusEventos',
+              currentPage: currentPage,
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu de baixo
+                if (currentPage != 'MeusEventos') {
+                  Navigator.push(
+                      context, MaterialPageRoute(builder: (context) => const MeusEventosScreen()));
+                }
+              },
+            ),
+
+          // --- SEÇÃO DO ADMIN ---
+          if (user.role == 'admin') ...[
+            _buildNavItem(
+              context,
+              icon: Icons.qr_code_scanner,
+              title: 'Validar Entradas',
+              pageName: 'Scanner',
+              currentPage: currentPage,
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu de baixo
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (context) => const AdminSelecionarEventoScreen()));
+              },
+            ),
+            _buildNavItem(
+              context,
+              icon: Icons.people_outline,
+              title: 'Controle de Eventos',
+              pageName: 'ControleEventos',
+              currentPage: currentPage,
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu de baixo
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminControleSelecionarScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildNavItem(
+              context,
+              icon: Icons.add_circle_outline, 
+              title: 'Criar Evento',
+              pageName: 'CriarEvento',
+              currentPage: currentPage,
+              onTap: () {
+                Navigator.pop(context); // Fecha o menu de baixo
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CriarEventoScreen()),
+                );
+              },
+            ),
+          ],
+          
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Divider(color: AppColors.secondaryText, height: 1),
+          ),
+
+          // --- Item "Sair" ---
+          _buildNavItem(
+            context,
+            icon: Icons.logout,
+            title: 'Sair',
+            pageName: 'Sair',
+            currentPage: currentPage,
+            onTap: () => _logout(context), // Chama a função de logout
+          )
+        
+        ] else ...[ // Se user == null (deslogado)
+          
+          // --- Item "Entrar" ---
+          _buildNavItem(
+            context,
+            icon: Icons.login,
+            title: 'Entrar',
+            pageName: 'Login',
+            currentPage: currentPage,
+            onTap: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
+            },
+          ),
+        ],
+      ],
     );
   }
 }

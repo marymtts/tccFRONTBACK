@@ -32,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() { _isLoading = true; });
 
     // URL da API que acabamos de criar
-    final url = Uri.parse('http://localhost/EC_back/api/registrar_aluno.php');
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/registrar_aluno.php');
     // (Lembre-se das URLs de Emulador/Celular Físico)
 
     try {

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart'; // Pacote para pegar imagem
 import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:intl/intl.dart'; // Para formatar a data
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart'; // <-- ADICIONADO: Para o InputFormatter de números
 
 class CriarEventoScreen extends StatefulWidget {
   const CriarEventoScreen({super.key});
@@ -23,6 +24,11 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   final TextEditingController _tituloController = TextEditingController();
   final TextEditingController _descricaoController = TextEditingController();
   
+  // --- ADICIONADO (PASSO 1): Novos controladores e variáveis de estado ---
+  final TextEditingController _maxParticipantesController = TextEditingController();
+  bool _requerInscricao = true; // Começa como "sim" por padrão
+  // -----------------------------------------------------------------
+
   // Variáveis para data e imagem
   DateTime? _selectedDate; // Guarda a data selecionada
   XFile? _selectedImage; // Guarda o arquivo de imagem selecionado
@@ -32,28 +38,26 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   // --- Função para abrir a Galeria/Câmera ---
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    // Abre a galeria para o usuário escolher uma imagem
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        _selectedImage = image; // Armazena a imagem selecionada
+        _selectedImage = image;
       });
     }
   }
 
-  // --- Função para mostrar o DatePicker (Calendário de seleção) ---
+  // --- Função para mostrar o DatePicker ---
   Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(), // Só pode criar eventos de hoje em diante
+      firstDate: DateTime.now(),
       lastDate: DateTime(2101),
-      // TODO: Adicionar um builder de tema escuro se necessário
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
-        _selectedDate = picked; // Armazena a data selecionada
+        _selectedDate = picked;
       });
     }
   }
@@ -62,7 +66,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   Future<void> _submitEvent() async {
     // 1. Valida o formulário
     if (!_formKey.currentState!.validate()) {
-      return; // Se 'título' ou 'descrição' estiverem vazios, para aqui.
+      return;
     }
     if (_selectedDate == null) {
       _showFeedbackSnackbar('Por favor, selecione uma data para o evento.', isError: true);
@@ -71,41 +75,42 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
 
     setState(() { _isLoading = true; });
 
-    // 2. URL da API (usando o case 'POST' do eventos.php)
-    final url = Uri.parse('http://localhost/EC_back/api/eventos.php');
-    // (Lembre-se das URLs de Emulador/Celular Físico)
+    // 2. URL da API (use o IP da sua rede, não 'localhost' ou '10.0.2.2' se for celular fisico)
+    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php');
 
     try {
       // 3. Cria a Requisição "Multipart"
-      // (Necessária para enviar arquivos + texto)
       var request = http.MultipartRequest('POST', url);
 
       // 4. Adiciona os campos de TEXTO
-      // (Os nomes 'titulo', 'descricao', etc. devem bater com o $_POST do PHP)
       request.fields['titulo'] = _tituloController.text;
       request.fields['descricao'] = _descricaoController.text;
-      // Formata a data para AAAA-MM-DD, que o MySQL entende
       request.fields['data_evento'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-      request.fields['inscricao'] = '1'; // Exemplo: todo evento criado permite inscrição
+      
+      // --- MODIFICADO (PASSO 3): Envia os novos dados ---
+      // Envia "true" ou "false" como string, que o PHP vai ler
+      request.fields['inscricao'] = _requerInscricao.toString(); 
+      
+      // Envia o valor do controller. Se estiver vazio, envia '0'
+      // A API PHP (que já corrigimos) entende '0' ou NULL como ilimitado.
+      request.fields['max_participantes'] = _maxParticipantesController.text.isEmpty
+                                            ? '0' 
+                                            : _maxParticipantesController.text;
+      // -------------------------------------------------
 
-      // 5. Adiciona o arquivo de IMAGEM (se um foi selecionado)
+      // 5. Adiciona o arquivo de IMAGEM
       if (_selectedImage != null) {
-        // 'imagem_evento' DEVE bater com o $_FILES['imagem_evento'] do PHP
-        
         if (kIsWeb) {
           // --- LÓGICA PARA WEB ---
-          // Lê os bytes da imagem (o navegador faz isso)
           var imageBytes = await _selectedImage!.readAsBytes();
-          // Cria o MultipartFile a partir dos bytes
           var multipartFile = http.MultipartFile.fromBytes(
-            'imagem_evento', // O nome do campo
+            'imagem_evento', 
             imageBytes,
-            // Precisamos dizer ao PHP o nome e tipo do arquivo
             filename: _selectedImage!.name, 
           );
           request.files.add(multipartFile);
         } else {
-          // --- LÓGICA PARA MOBILE (A que você já tinha) ---
+          // --- LÓGICA PARA MOBILE ---
           request.files.add(
             await http.MultipartFile.fromPath(
               'imagem_evento',
@@ -114,7 +119,6 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
           );
         }
       }
-      // (Se _selectedImage for null, a API salvará NULL no banco, como planejamos)
 
       // 6. Envia a requisição
       var streamedResponse = await request.send();
@@ -147,6 +151,16 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
     );
   }
 
+  // --- ADICIONADO: Dispose para o novo controller ---
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descricaoController.dispose();
+    _maxParticipantesController.dispose(); // <-- Limpa o novo controller
+    super.dispose();
+  }
+  // ---------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,7 +190,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                     TextFormField(
                       controller: _descricaoController,
                       decoration: _buildInputDecoration('Descrição Completa'),
-                      maxLines: 5, // Campo maior
+                      maxLines: 5,
                       validator: (value) => (value == null || value.isEmpty) ? 'Campo obrigatório' : null,
                     ),
                     const SizedBox(height: 24),
@@ -185,8 +199,9 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                     Text('Data do Evento:', style: TextStyle(color: AppColors.secondaryText)),
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: () => _pickDate(context), // Abre o calendário
+                      onTap: () => _pickDate(context),
                       child: Container(
+                        // ... (seu container de data, sem mudanças) ...
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
@@ -197,8 +212,8 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                           children: [
                             Text(
                               _selectedDate == null
-                                ? 'Selecione uma data'
-                                : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDate!),
+                                  ? 'Selecione uma data'
+                                  : DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDate!),
                               style: TextStyle(color: _selectedDate == null ? AppColors.secondaryText : Colors.white, fontSize: 16),
                             ),
                             const Icon(Icons.calendar_today, color: AppColors.secondaryText),
@@ -208,12 +223,49 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                     ),
                     const SizedBox(height: 24),
 
+                    // --- ADICIONADO (PASSO 2): Novos campos do formulário ---
+                    // --- CAMPO 1: REQUER INSCRIÇÃO (Switch) ---
+                    SwitchListTile(
+                      title: Text(
+                        'Requer Inscrição?',
+                        style: TextStyle(color: AppColors.primaryText, fontSize: 16),
+                      ),
+                      subtitle: Text(
+                        _requerInscricao ? 'Sim, vagas serão controladas.' : 'Não, evento aberto ao público.',
+                        style: TextStyle(color: AppColors.secondaryText),
+                      ),
+                      value: _requerInscricao,
+                      activeColor: AppColors.accent, // Sua cor vermelha
+                      onChanged: (bool newValue) {
+                        setState(() {
+                          _requerInscricao = newValue;
+                        });
+                      },
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 16), 
+
+                    // --- CAMPO 2: MÁXIMO DE PARTICIPANTES (Condicional) ---
+                    // Só mostra este campo se o switch de cima estiver ATIVADO
+                    if (_requerInscricao)
+                      TextFormField(
+                        controller: _maxParticipantesController,
+                        decoration: _buildInputDecoration('Número Máximo de Vagas (0 = ilimitado)'),
+                        keyboardType: TextInputType.number, // Teclado numérico
+                        // Filtra para aceitar apenas números
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly], 
+                      ),
+                    // ----------------------------------------------------
+                    
+                    const SizedBox(height: 24),
+
                     // --- Seletor de Imagem ---
                     Text('Imagem do Evento (Opcional):', style: TextStyle(color: AppColors.secondaryText)),
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: _pickImage, // Abre a galeria
+                      onTap: _pickImage,
                       child: Container(
+                        // ... (seu container de imagem, sem mudanças) ...
                         height: 150,
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -221,16 +273,12 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.secondaryText, width: 0.5),
                         ),
-                        // Mostra a imagem selecionada ou o placeholder
                         child: _selectedImage != null
                             ? (kIsWeb
-                                // --- LÓGICA PARA WEB ---
-                                // Usa Image.network com o caminho de memória do picker
                                 ? Image.network(
                                     _selectedImage!.path, 
                                     fit: BoxFit.cover,
                                   )
-                                // --- LÓGICA PARA MOBILE ---
                                 : Image.file( 
                                     File(_selectedImage!.path),
                                     fit: BoxFit.cover,
@@ -268,7 +316,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
     );
   }
 
-  // Função auxiliar de estilo (copiada do register_screen)
+  // Função auxiliar de estilo (sem mudanças)
   InputDecoration _buildInputDecoration(String label) {
     return InputDecoration(
       labelText: label,

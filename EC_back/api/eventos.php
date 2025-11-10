@@ -21,7 +21,7 @@ if ($method == "OPTIONS") {
     http_response_code(200);
     exit();
 }
-// --- FIM DA CORREÇÃO ---
+// --- FIM DA CORREÇÃO ---  
 // Inclui a conexão com o banco
 include_once '../config/database.php';
 
@@ -32,21 +32,38 @@ $db = $database->getConnection();
 switch ($method) {
     // --- CASO GET: Buscar eventos ---
     case 'GET':
-        if (isset($_GET['id'])) {
-            $id = intval($_GET['id']);
-            $stmt = $db->prepare("SELECT * FROM eventos WHERE id = :id");
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
-            $evento = $stmt->fetch(PDO::FETCH_ASSOC);
+        // ... dentro do case 'GET':
+    if (isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        
+        // --- 1. BUSCA O EVENTO (igual antes) ---
+        $stmt = $db->prepare("SELECT * FROM eventos WHERE id = :id");
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $evento = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($evento) {
-                http_response_code(200); // OK
-                echo json_encode($evento);
-            } else {
-                http_response_code(404); // Not Found
-                echo json_encode(array("message" => "Evento não encontrado."));
-            }
+        if ($evento) {
+            // --- 2. NOVA LÓGICA: CONTA OS INSCRITOS ---
+            $stmt_count = $db->prepare("SELECT COUNT(*) as inscritos_count FROM participacao WHERE id_evento = :id_evento");
+            $stmt_count->bindParam(':id_evento', $id);
+            $stmt_count->execute();
+            
+            // Pega o resultado da contagem (ex: 15)
+            $count_result = $stmt_count->fetch(PDO::FETCH_ASSOC);
+            $inscritos_count = $count_result ? $count_result['inscritos_count'] : 0;
+            
+            // --- 3. ADICIONA A CONTAGEM AO RESULTADO ---
+            $evento['inscritos_count'] = $inscritos_count;
+            
+            // --- 4. ENVIA TUDO JUNTO ---
+            http_response_code(200); // OK
+            echo json_encode($evento); // Agora envia {"id": ..., "titulo": ..., "inscritos_count": 15}
+
         } else {
+            http_response_code(404); // Not Found
+            echo json_encode(array("message" => "Evento não encontrado."));
+        }
+    } else {
             // Retorna todos os eventos, ordenados pela data mais recente primeiro
             $stmt = $db->prepare("SELECT * FROM eventos ORDER BY data_evento DESC");
             $stmt->execute();
@@ -58,185 +75,200 @@ switch ($method) {
         break;
 
     // --- CASO POST: Inserir um novo evento ---
-    case 'POST':
-        // Pega os dados de texto (titulo, data, etc.) enviados como JSON
-        // IMPORTANTE: Para enviar IMAGEM + DADOS, o Flutter usará multipart/form-data.
-        // PHP não popula file_get_contents com multipart. Os dados de texto virão via $_POST.
-        // $data = json_decode(file_get_contents("php://input")); // <<-- Comente ou remova esta linha
+    // ... (seu switch($method) continua) ...
 
-        // Em vez disso, pegamos os dados de texto do $_POST
-        $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
-        $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
-        $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
-        $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; // Flutter enviará 'true'/'false' ou 1/0 como string
+    case 'POST': // <-- ESTE CASE AGORA FAZ AS DUAS COISAS: CRIAR E ATUALIZAR
+        
+        // --- A MÁGICA ESTÁ AQUI ---
+        // Primeiro, verificamos se um ID foi passado na URL
+        $id = isset($_GET['id']) ? intval($_GET['id']) : null;
 
-
-        // --- LÓGICA DA IMAGEM ---
-        $imagem_url_para_db = null; // Caminho a ser salvo no banco (NULL por padrão)
-
-        // Verifica se um arquivo foi enviado com o nome 'imagem_evento'
-        if (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] == UPLOAD_ERR_OK) {
+        if ($id) {
+            // #######################################################
+            // ## SE TEM ID (id != null), NÓS ESTAMOS ATUALIZANDO ##
+            // ## (Esta é a lógica que estava no seu case 'PUT') ##
+            // #######################################################
             
-            $uploadDir = '../uploads/eventos/'; // Pasta de uploads
-            $nomeArquivoOriginal = basename($_FILES['imagem_evento']['name']);
-            $extensao = strtolower(pathinfo($nomeArquivoOriginal, PATHINFO_EXTENSION));
-            $nomeArquivoUnico = uniqid('evento_', true) . '.' . $extensao; 
-            $caminhoDestino = $uploadDir . $nomeArquivoUnico;
+            // Pega dados de texto do $_POST
+            $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
+            $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
+            $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
+            $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; 
+            $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
 
-            $tiposPermitidos = ['jpg', 'jpeg', 'png', 'gif'];
-            if (in_array($extensao, $tiposPermitidos)) {
+            // LÓGICA DA IMAGEM (com opção de remover)
+            $imagem_url_para_db = null; 
+            $atualizar_imagem_url = false; 
+
+            if (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] == UPLOAD_ERR_OK) {
+                // ... (Lógica de upload de imagem) ...
+                $uploadDir = '../uploads/eventos/';
+                $nomeArquivoOriginal = basename($_FILES['imagem_evento']['name']);
+                $extensao = strtolower(pathinfo($nomeArquivoOriginal, PATHINFO_EXTENSION));
+                $nomeArquivoUnico = uniqid('evento_', true) . '.' . $extensao;
+                $caminhoDestino = $uploadDir . $nomeArquivoUnico;
+                
                 if (move_uploaded_file($_FILES['imagem_evento']['tmp_name'], $caminhoDestino)) {
-                    // Guarda o caminho RELATIVO para o banco
-                    $imagem_url_para_db = '/uploads/eventos/' . $nomeArquivoUnico; 
+                    $imagem_url_para_db = '/uploads/eventos/' . $nomeArquivoUnico;
+                    $atualizar_imagem_url = true;
                 } else {
-                    http_response_code(500); 
-                    echo json_encode(array("message" => "Erro ao salvar a imagem no servidor. Verifique permissões da pasta '$uploadDir'."));
-                    exit(); 
+                    http_response_code(500);
+                    echo json_encode(array("message" => "Erro ao salvar a nova imagem no PUT."));
+                    exit();
+                }
+            } elseif (isset($_POST['remover_imagem']) && (strtolower($_POST['remover_imagem']) == 'true' || $_POST['remover_imagem'] == '1')) {
+                $imagem_url_para_db = null;
+                $atualizar_imagem_url = true; 
+            }
+
+            // Verifica dados obrigatórios
+            if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
+                
+                // Monta a query UPDATE
+                $query = "UPDATE eventos SET 
+                            titulo = :titulo, 
+                            descricao = :descricao, 
+                            data_evento = :data_evento, 
+                            inscricao = :inscricao, 
+                            max_participantes = :max_participantes";
+                
+                if ($atualizar_imagem_url) {
+                    $query .= ", imagem_url = :imagem_url";
+                }
+                $query .= " WHERE id = :id";
+                
+                $stmt = $db->prepare($query);
+
+                // Limpa dados
+                $titulo_limpo = htmlspecialchars(strip_tags($titulo));
+                $descricao_limpa = isset($descricao) ? htmlspecialchars(strip_tags($descricao)) : null;
+                $data_evento_limpo = htmlspecialchars(strip_tags($data_evento));
+                $inscricao_limpa = (strtolower($inscricao) === 'true' || $inscricao === '1') ? 1 : 0;
+
+                $max_participantes_limpo = null;
+                if ($inscricao_limpa == 1 && !empty($max_participantes) && intval($max_participantes) > 0) {
+                    $max_participantes_limpo = intval($max_participantes);
+                }
+
+                // Associa valores
+                $stmt->bindParam(':titulo', $titulo_limpo);
+                $stmt->bindParam(':descricao', $descricao_limpa);
+                $stmt->bindParam(':data_evento', $data_evento_limpo);
+                $stmt->bindParam(':inscricao', $inscricao_limpa);
+                $stmt->bindParam(':id', $id);
+                $stmt->bindParam(':max_participantes', $max_participantes_limpo);
+                
+                if ($atualizar_imagem_url) {
+                    $stmt->bindParam(':imagem_url', $imagem_url_para_db);
+                }
+
+                if ($stmt->execute()) {
+                    http_response_code(200); // OK
+                    echo json_encode(array("message" => "Evento ATUALIZADO com sucesso."));
+                } else {
+                    $errorInfo = $stmt->errorInfo();
+                    http_response_code(503); 
+                    echo json_encode(array("message" => "Não foi possível atualizar o evento.", "error_details" => $errorInfo[2]));
                 }
             } else {
-                 http_response_code(400); 
-                 echo json_encode(array("message" => "Tipo de imagem não permitido ($extensao). Use JPG, JPEG, PNG ou GIF."));
-                 exit(); 
+                http_response_code(400); // Bad Request
+                echo json_encode(array("message" => "Dados incompletos para atualização."));
             }
-        } elseif (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] != UPLOAD_ERR_NO_FILE) {
-            // Se houve um erro no upload (diferente de "nenhum arquivo enviado")
-             http_response_code(500); 
-             echo json_encode(array("message" => "Erro durante o upload da imagem: código " . $_FILES['imagem_evento']['error']));
-             exit(); 
-        }
-        // Se nenhum arquivo foi enviado (UPLOAD_ERR_NO_FILE), $imagem_url_para_db continua null, o que está correto.
-        // --- FIM DA LÓGICA DA IMAGEM ---
 
-
-        // Verifica se os dados de TEXTO (agora do $_POST) são válidos
-        // Note que `inscricao` vem como string '1' ou '0', ou 'true'/'false'
-        if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
-            
-            // Query INSERT com a nova coluna imagem_url
-            $query = "INSERT INTO eventos (titulo, descricao, data_evento, inscricao, imagem_url) VALUES (:titulo, :descricao, :data_evento, :inscricao, :imagem_url)";
-            $stmt = $db->prepare($query);
-
-            // Limpa os dados de texto
-            $titulo_limpo = htmlspecialchars(strip_tags($titulo));
-            $descricao_limpa = isset($descricao) ? htmlspecialchars(strip_tags($descricao)) : null;
-            $data_evento_limpo = htmlspecialchars(strip_tags($data_evento));
-            // Converte 'true'/'1' para 1, 'false'/'0'/outros para 0
-            $inscricao_limpa = (strtolower($inscricao) === 'true' || $inscricao === '1') ? 1 : 0; 
-
-            // Associa os valores
-            $stmt->bindParam(':titulo', $titulo_limpo);
-            $stmt->bindParam(':descricao', $descricao_limpa);
-            $stmt->bindParam(':data_evento', $data_evento_limpo);
-            $stmt->bindParam(':inscricao', $inscricao_limpa);
-            $stmt->bindParam(':imagem_url', $imagem_url_para_db); // Associa o caminho da imagem (ou null)
-
-            if ($stmt->execute()) {
-                http_response_code(201); // Created
-                echo json_encode(array("message" => "Evento criado com sucesso."));
-            } else {
-                // Tenta pegar mais detalhes do erro do PDO
-                $errorInfo = $stmt->errorInfo();
-                http_response_code(503); // Service Unavailable
-                echo json_encode(array("message" => "Não foi possível criar o evento no banco.", "error_details" => $errorInfo[2]));
-            }
         } else {
-            http_response_code(400); // Bad Request
-            echo json_encode(array("message" => "Dados incompletos recebidos via POST. 'titulo', 'data_evento' e 'inscricao' são obrigatórios."));
+            // #######################################################
+            // ## SE NÃO TEM ID (id == null), NÓS ESTAMOS CRIANDO ##
+            // ## (Esta é a lógica que JÁ ESTAVA no seu case 'POST') ##
+            // #######################################################
+
+            // Pega os dados de texto do $_POST
+            $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
+            $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
+            $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
+            $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null;
+            $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
+
+            // --- LÓGICA DA IMAGEM (Criar) ---
+            $imagem_url_para_db = null;
+            if (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] == UPLOAD_ERR_OK) {
+                // ... (Sua lógica de upload) ...
+                $uploadDir = '../uploads/eventos/';
+                $nomeArquivoOriginal = basename($_FILES['imagem_evento']['name']);
+                $extensao = strtolower(pathinfo($nomeArquivoOriginal, PATHINFO_EXTENSION));
+                $nomeArquivoUnico = uniqid('evento_', true) . '.' . $extensao; 
+                $caminhoDestino = $uploadDir . $nomeArquivoUnico;
+
+                $tiposPermitidos = ['jpg', 'jpeg', 'png', 'gif'];
+                if (in_array($extensao, $tiposPermitidos)) {
+                    if (move_uploaded_file($_FILES['imagem_evento']['tmp_name'], $caminhoDestino)) {
+                        $imagem_url_para_db = '/uploads/eventos/' . $nomeArquivoUnico; 
+                    } else {
+                        http_response_code(500); 
+                        echo json_encode(array("message" => "Erro ao salvar a imagem no servidor."));
+                        exit(); 
+                    }
+                } else {
+                    http_response_code(400); 
+                    echo json_encode(array("message" => "Tipo de imagem não permitido ($extensao)."));
+                    exit(); 
+                }
+            } elseif (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] != UPLOAD_ERR_NO_FILE) {
+                http_response_code(500); 
+                echo json_encode(array("message" => "Erro durante o upload da imagem: código " . $_FILES['imagem_evento']['error']));
+                exit(); 
+            }
+
+            // Verifica dados obrigatórios
+            if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
+                
+                // Monta a query INSERT
+                $query = "INSERT INTO eventos (titulo, descricao, data_evento, inscricao, imagem_url, max_participantes) 
+                          VALUES (:titulo, :descricao, :data_evento, :inscricao, :imagem_url, :max_participantes)";
+                
+                $stmt = $db->prepare($query);
+
+                // Limpa os dados
+                $titulo_limpo = htmlspecialchars(strip_tags($titulo));
+                $descricao_limpa = isset($descricao) ? htmlspecialchars(strip_tags($descricao)) : null;
+                $data_evento_limpo = htmlspecialchars(strip_tags($data_evento));
+                $inscricao_limpa = (strtolower($inscricao) === 'true' || $inscricao === '1') ? 1 : 0; 
+                
+                $max_participantes_limpo = null;
+                if ($inscricao_limpa == 1 && !empty($max_participantes) && intval($max_participantes) > 0) {
+                    $max_participantes_limpo = intval($max_participantes);
+                }
+
+                // Associa os valores
+                $stmt->bindParam(':titulo', $titulo_limpo);
+                $stmt->bindParam(':descricao', $descricao_limpa);
+                $stmt->bindParam(':data_evento', $data_evento_limpo);
+                $stmt->bindParam(':inscricao', $inscricao_limpa);
+                $stmt->bindParam(':imagem_url', $imagem_url_para_db);
+                $stmt->bindParam(':max_participantes', $max_participantes_limpo);
+
+                if ($stmt->execute()) {
+                    http_response_code(201); // Created
+                    echo json_encode(array("message" => "Evento CRIADO com sucesso."));
+                } else {
+                    $errorInfo = $stmt->errorInfo();
+                    http_response_code(503); 
+                    echo json_encode(array("message" => "Não foi possível criar o evento no banco.", "error_details" => $errorInfo[2]));
+                }
+            } else {
+                http_response_code(400); // Bad Request
+                echo json_encode(array("message" => "Dados incompletos recebidos via POST. 'titulo', 'data_evento' e 'inscricao' são obrigatórios."));
+            }
         }
         break;
 
-    // --- CASO PUT: Atualizar um evento ---
-    // --- CASO PUT: Atualizar um evento ---
     case 'PUT':
-        // Como explicado antes, PUT com multipart é complexo.
-        // Assumimos que o Flutter enviará como POST com os dados em $_POST e $_FILES.
-        
-        $id = isset($_GET['id']) ? intval($_GET['id']) : null; // ID vem da URL
-        
-        // Pega dados de texto do $_POST
-        $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
-        $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
-        $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
-        $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; // Vem como string '1'/'0', etc.
+        // --- ESVAZIE ESTE CASE ---
+        // Nós não o usamos mais, pois o POST faz tudo.
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(array("message" => "Método PUT não é suportado. Use POST com ?id=... para atualizar."));
+        break;
 
-        if (!$id) {
-             http_response_code(400);
-             echo json_encode(array("message" => "ID do evento não fornecido na URL para atualização."));
-             break; 
-        }
-
-        // --- LÓGICA DA IMAGEM (similar ao POST, mas com opção de remover) ---
-        $imagem_url_para_db = null; 
-        $atualizar_imagem_url = false; 
-
-        if (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] == UPLOAD_ERR_OK) {
-            // ... (COPIE A LÓGICA DE UPLOAD DO 'case POST' AQUI) ...
-            // Verifique $extensao, $tiposPermitidos
-            // Tente move_uploaded_file(...)
-            if (move_uploaded_file($_FILES['imagem_evento']['tmp_name'], $caminhoDestino)) {
-                 $imagem_url_para_db = '/uploads/eventos/' . $nomeArquivoUnico;
-                 $atualizar_imagem_url = true; 
-                 // TODO: Opcional - Deletar a imagem antiga do servidor se existir
-            } else {
-                 http_response_code(500);
-                 echo json_encode(array("message" => "Erro ao salvar a nova imagem no PUT."));
-                 exit();
-            }
-        } elseif (isset($_POST['remover_imagem']) && ($_POST['remover_imagem'] == '1' || strtolower($_POST['remover_imagem']) == 'true')) {
-             // Se o front-end mandou uma flag para remover a imagem
-             $imagem_url_para_db = null; // Define como NULL
-             $atualizar_imagem_url = true; // Marca para atualizar no DB
-             // TODO: Opcional - Deletar o arquivo antigo do servidor aqui
-        }
-        // Se nenhuma imagem nova foi enviada e 'remover_imagem' não foi setado,
-        // a imagem antiga no banco NÃO será alterada.
-        // --- FIM DA LÓGICA DA IMAGEM ---
-
-
-        // Verifica dados obrigatórios de texto
-        if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
-            
-            // Monta a query dinamicamente
-            $query = "UPDATE eventos SET titulo = :titulo, descricao = :descricao, data_evento = :data_evento, inscricao = :inscricao";
-            if ($atualizar_imagem_url) {
-                $query .= ", imagem_url = :imagem_url"; // Só atualiza imagem se necessário
-            }
-            $query .= " WHERE id = :id";
-            
-            $stmt = $db->prepare($query);
-
-            // Limpa dados de texto
-            $titulo_limpo = htmlspecialchars(strip_tags($titulo));
-            $descricao_limpa = isset($descricao) ? htmlspecialchars(strip_tags($descricao)) : null;
-            $data_evento_limpo = htmlspecialchars(strip_tags($data_evento));
-            $inscricao_limpa = (strtolower($inscricao) === 'true' || $inscricao === '1') ? 1 : 0;
-
-            // Associa valores
-            $stmt->bindParam(':titulo', $titulo_limpo);
-            $stmt->bindParam(':descricao', $descricao_limpa);
-            $stmt->bindParam(':data_evento', $data_evento_limpo);
-            $stmt->bindParam(':inscricao', $inscricao_limpa);
-            $stmt->bindParam(':id', $id);
-            
-            // Associa a imagem SÓ SE for para atualizar
-            if ($atualizar_imagem_url) {
-                $stmt->bindParam(':imagem_url', $imagem_url_para_db);
-            }
-
-            if ($stmt->execute()) {
-                http_response_code(200); // OK
-                echo json_encode(array("message" => "Evento atualizado com sucesso."));
-            } else {
-                $errorInfo = $stmt->errorInfo();
-                http_response_code(503); 
-                echo json_encode(array("message" => "Não foi possível atualizar o evento.", "error_details" => $errorInfo[2]));
-            }
-        } else {
-            http_response_code(400); // Bad Request
-            echo json_encode(array("message" => "Dados incompletos recebidos via POST para atualização."));
-        }
-        break; 
-
+    // ... (seu case 'DELETE' e 'default' continuam iguais) ...
     // --- CASO DELETE: Excluir um evento (PROTEGIDO) ---
     case 'DELETE':
         // --- INÍCIO DA VALIDAÇÃO DE ADMIN ---

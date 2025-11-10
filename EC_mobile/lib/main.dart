@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; 
 import 'package:ec_mobile/theme/app_colors.dart'; 
-import 'package:ec_mobile/widgets/app_drawer.dart';
+import 'package:ec_mobile/widgets/app_drawer.dart'; // Importa AppDrawer e AppDrawerContent
 import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ec_mobile/screens/proximos_eventos_screen.dart';
@@ -18,10 +18,7 @@ import 'package:ec_mobile/providers/user_provider.dart';
 import 'package:ec_mobile/screens/auth_check_screen.dart';
 
 void main() async {
- 
   WidgetsFlutterBinding.ensureInitialized();
-
-
   await initializeDateFormatting('pt_BR', null); 
 
   runApp(
@@ -30,7 +27,6 @@ void main() async {
       child: const MyApp(), // O seu app agora é "filho" do Provedor
     ),
   ); 
-
 }
 
 class MyApp extends StatelessWidget {
@@ -56,55 +52,100 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthCheckScreen(),//const HomeScreen(),
+      home: const AuthCheckScreen(), //const HomeScreen(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget { // <--- MUDE AQUI
+class HomeScreen extends StatefulWidget { 
   const HomeScreen({super.key});
 
-  @override // <-- ADICIONE ESTAS DUAS LINHAS
+  @override 
   State<HomeScreen> createState() => _HomeScreenState(); 
-} // <--- A CHAVE QUE VOCÊ MENCIONOU AGORA FECHA AQUI!
+} 
 
-class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
+// --- AQUI COMEÇA A CLASSE DE ESTADO (onde tudo acontece) ---
+class _HomeScreenState extends State<HomeScreen> { 
 
-  // --- MUDANÇA 1: Adicionar variáveis de estado ---
-  List<dynamic> _featuredEvents = []; // Lista para guardar os eventos da API
+  // --- 1. A FUNÇÃO DO MENU DE BAIXO (NO LUGAR CERTO) ---
+  void _showBottomMenu(BuildContext context, String currentPage) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent, // Fundo transparente para a borda
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true, // Permite controlar a altura
+      builder: (BuildContext context) {
+        // Define a altura (ex: 85% da tela)
+        return FractionallySizedBox(
+          heightFactor: 0.85, 
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Container(
+              color: AppColors.surface, // Cor de fundo do seu menu
+              // Aqui chamamos o CONTEÚDO que refatoramos
+              child: AppDrawerContent(currentPage: currentPage), 
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- 2. SUAS VARIÁVEIS (NO LUGAR CERTO) ---
+  List<dynamic> _featuredEvents = []; 
   bool _isLoading = true;
   String _errorMessage = '';
-  // --- FIM DA MUDANÇA 1 ---
 
-  
-
-  // Dentro da _HomeScreenState
-
+  // --- 3. SEU MÉTODO BUILD (PRINCIPAL) ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const AppDrawer(currentPage: 'Início'), // Seu drawer (continua igual)
-      appBar: AppBar( // Seu appBar (continua igual)
-        backgroundColor: AppColors.surface,
+      
+      // --- 4. APPBAR CORRIGIDO (para o menu de baixo) ---
+      appBar: AppBar(
+        backgroundColor: AppColors.surface, // Sua cor
         elevation: 0,
-        centerTitle: false,
-        title: Row( /* ... seu código do título ... */ ),
-        actions: [ /* ... seu código do botão "Divulgue!" ... */ ],
+        title: const Text('Início', style: TextStyle(fontWeight: FontWeight.bold)),
+        // O ícone do menu
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: AppColors.primaryText, size: 28),
+            onPressed: () {
+              // --- 5. CONECTADO NA FUNÇÃO CERTA ---
+              _showBottomMenu(context, 'Início'); 
+            },
+          ),
+        ),
       ),
       
-      // --- O NOVO BODY (SEM LOADING/ERRO) ---
+      // --- 6. LINHA DO DRAWER REMOVIDA ---
+      // drawer: const AppDrawer(currentPage: 'Início'), // <-- Linha apagada
+
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            
+            // --- 7. IMAGEM MOVIDA PARA CÁ (PONTA-A-PONTA) ---
+            Image.asset(
+              'assets/images/echolder.jpg', // O caminho da sua imagem
+              width: double.infinity,      // <-- FORÇA A LARGURA TOTAL
+              height: 300,                 // <-- Ajuste a altura como preferir
+              fit: BoxFit.cover,           // <-- Faz a imagem cobrir o espaço
+            ),
+            // --------------------------------------------------
+            
             // Seção "Hero" e "Navegação" (fundo principal)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              // O padding agora só afeta o texto e os botões
+              padding: const EdgeInsets.symmetric(horizontal: 20.0), 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 80), 
-                  _buildHeroSection(), // Continua igual
+                  const SizedBox(height: 40), // Espaço entre a imagem e o texto
+                  _buildHeroSection(), // Agora esta função só tem texto e botão
                   const SizedBox(height: 80),
                   _buildNavigationSection(), // <-- A NOVA SEÇÃO DE BOTÕES
                 ],
@@ -136,19 +177,17 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
       ),
     );
   }
-  // --- FIM DA MUDANÇA 3 ---
+  // --- FIM DO MÉTODO BUILD ---
 
-
-  // As funções _buildHeroSection, _buildAboutUsSection, _buildCtaSection, _buildFooter
-  // continuam EXATAMENTE IGUAIS.
-
-    Widget _buildHeroSection() {
+  // --- 8. _buildHeroSection (CORRIGIDA - SEM A IMAGEM) ---
+  Widget _buildHeroSection() {
     return Column(
       children: [
+        // --- Imagem removida daqui ---
+
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
-            
             style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
@@ -181,11 +220,11 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
         TextButton(
           onPressed: () {
             Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
-        );
+              context,
+              MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
+            );
           },
-          child: const Text('Ver Próximos Eventos', style: TextStyle(fontSize: 16)),
+          child: const Text('Como começar', style: TextStyle(fontSize: 16)),
           style: TextButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: Colors.white,
@@ -196,103 +235,107 @@ class _HomeScreenState extends State<HomeScreen> { // <-- Nova classe de Estado
       ],
     );
   } 
+  
+  // --- O RESTO DAS SUAS FUNÇÕES (sem mudanças) ---
+
   Widget _buildAboutUsSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [ 
-      const Text(
-        'Quem somos?',
-        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-      ),
-      const SizedBox(height: 15),
-      const Text(
-        'O "Eventos Cotil" é uma iniciativa 100% feita por alunos, para alunos. Nós percebemos que muitas oportunidades incríveis passavam despercebidas por falta de divulgação.\n\nNossa missão é simples: conectar você a todas as experiências que o Cotil oferece, garantindo que ninguém perca a chance de aprender, se divertir e crescer.',
-        style: TextStyle(color: AppColors.secondaryText, height: 1.6),
-      ),
-      const SizedBox(height: 30),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Center(
-          child: Text(
-            'Equipe Eventos Cotil',
-            style: TextStyle(
-              color: AppColors.accent,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-Widget _buildCtaSection() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(30),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [ 
         const Text(
-          'Tem um evento para divulgar?',
+          'Quem somos?',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 15),
         const Text(
-          'É organizador de algum centro acadêmico, atlética, ou está planejando algo incrível? Manda pra gente! Teremos o prazer de ajudar na divulgação.',
-          textAlign: TextAlign.center,
+          'O "Eventos Cotil" é uma iniciativa 100% feita por alunos, para alunos. Nós percebemos que muitas oportunidades incríveis passavam despercebidas por falta de divulgação.\n\nNossa missão é simples: conectar você a todas as experiências que o Cotil oferece, garantindo que ninguém perca a chance de aprender, se divertir e crescer.',
           style: TextStyle(color: AppColors.secondaryText, height: 1.6),
         ),
-        const SizedBox(height: 25),
-        
-        InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              
-              gradient: const LinearGradient(
-                colors: [AppColors.accentOrange, AppColors.accent],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-            child: const Text(
-              'Fale Conosco',
+        const SizedBox(height: 30),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: Text(
+              'Equipe Eventos Cotil',
               style: TextStyle(
+                color: AppColors.accent,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.white,
               ),
             ),
           ),
         ),
       ],
-    ),
-  );
-}
-Widget _buildFooter() {
-  return const Center(
-    child: Text(
-      '© 2025 Eventos Cotil. Uma iniciativa de alunos para alunos.',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: AppColors.secondaryText,
-        fontSize: 12,
+    );
+  }
+
+  Widget _buildCtaSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
       ),
-    ),
-  );
-}
+      child: Column(
+        children: [
+          const Text(
+            'Tem um evento para divulgar?',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 15),
+          const Text(
+            'É organizador de algum centro acadêmico, atlética, ou está planejando algo incrível? Manda pra gente! Teremos o prazer de ajudar na divulgação.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.secondaryText, height: 1.6),
+          ),
+          const SizedBox(height: 25),
+          
+          InkWell(
+            onTap: () {},
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  colors: [AppColors.accentOrange, AppColors.accent],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: const Text(
+                'Fale Conosco',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return const Center(
+      child: Text(
+        '© 2025 Eventos Cotil. Uma iniciativa de alunos para alunos.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: AppColors.secondaryText,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
 
   Widget _buildNavigationSection() {
     return Column(
@@ -300,24 +343,20 @@ Widget _buildFooter() {
       children: [
         const Text(
           'Por onde você quer começar?',
-          
           style: TextStyle(
-            
             fontSize: 22,
             fontWeight: FontWeight.w600,
             color: AppColors.primaryText , 
-            
           ),
         ),
         const SizedBox(height: 20),
 
         // Botão 1: Próximos Eventos
         _buildNavCard(
-          
           icon: Icons.view_agenda_outlined,
           title: 'Próximos Eventos',
           subtitle: 'Fique por dentro do que está por vir!',
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- PASSANDO A COR AZUL
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
           onTap: () {
             Navigator.push(
               context,
@@ -332,8 +371,7 @@ Widget _buildFooter() {
           icon: Icons.calendar_today,
           title: 'Calendário',
           subtitle: 'Explore e programe suas participações',
-          
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- PASSANDO A COR ROSA
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
           onTap: () {
             Navigator.push(
               context,
@@ -347,7 +385,7 @@ Widget _buildFooter() {
           icon: Icons.check_circle, // Ícone sólido
           title: 'Meus Eventos',
           subtitle: 'Eventos em que você está inscrito',
-          iconBackgroundColor: AppColors.iconBgMeusEventos,
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
           onTap: () {
             final user = Provider.of<UserProvider>(context, listen: false).user;
             if (user != null) {
@@ -367,9 +405,6 @@ Widget _buildFooter() {
     );
   }
 
- // lib/main.dart (Dentro da _HomeScreenState)
-
-  // --- O NOVO WIDGET DE BOTÃO (ÍCONE QUADRADO) ---
   Widget _buildNavCard({
     required IconData icon,
     required String title,
@@ -398,14 +433,13 @@ Widget _buildFooter() {
                   color: iconBackgroundColor, // <-- 3. USA A COR SÓLIDA
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
-                  BoxShadow(
-                    color: iconBackgroundColor.withOpacity(0.4), // Sombra da mesma cor
-                    blurRadius: 15.0,   // "Esfumaçado" do bloom
-                    spreadRadius: 3.0,    // Espalha o brilho
-                    offset: const Offset(0, 6), // Deslocamento para baixo
-                  ),
-                ], // <-- Deixa "quadrado"
-                  // (Removido o gradient e a sombra no ícone)
+                    BoxShadow(
+                      color: iconBackgroundColor.withOpacity(0.4), // Sombra da mesma cor
+                      blurRadius: 15.0,   // "Esfumaçado" do bloom
+                      spreadRadius: 3.0,    // Espalha o brilho
+                      offset: const Offset(0, 6), // Deslocamento para baixo
+                    ),
+                  ], 
                 ),
                 child: Icon(icon, color: Colors.white, size: 30), // Ícone maior
               ),
@@ -444,27 +478,4 @@ Widget _buildFooter() {
     );
   }
 
-
-  // --- MUDANÇA 5: Funções Auxiliares (Exemplos) ---
-  // Você precisará criar lógicas para escolher ícone/cor e formatar data
-
-
-  // --- FIM DA MUDANÇA 5 ---
-
-} // Fim da classe _HomeScreenState
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
+} // --- FIM DA CLASSE _HomeScreenState ---

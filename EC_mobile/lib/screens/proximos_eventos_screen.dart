@@ -1,13 +1,13 @@
-
+import 'package:ec_mobile/widgets/custom_app_bar.dart'; // Novo import
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:ec_mobile/screens/inscricao_evento_screen.dart';
-
 import 'package:ec_mobile/theme/app_colors.dart';
-// Importe o AppDrawer se for usá-lo
-// import 'package:ec_mobile/widgets/app_drawer.dart'; 
+import 'package:provider/provider.dart';
+import 'package:ec_mobile/providers/user_provider.dart';
+import 'package:ec_mobile/screens/editar_evento_screen.dart'; 
 
 class ProximosEventosScreen extends StatefulWidget {
   const ProximosEventosScreen({super.key});
@@ -21,6 +21,11 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  // --- MUDANÇA: Defina a URL do seu servidor aqui ---
+  // (Lembre-se: 10.0.2.2 para emulador, 192.168... para celular físico)
+  final String _serverUrl = 'http://192.168.15.174'; 
+  // --------------------------------------------------
+
   @override
   void initState() {
     super.initState();
@@ -28,9 +33,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
   }
 
   Future<void> _fetchUpcomingEvents() async {
-    // !!! URL DO NOVO ENDPOINT PHP !!!
-    final url = Uri.parse('http://localhost/EC_back/api/get_proximos_eventos.php');
-    // (Lembre-se das URLs de Emulador/Celular Físico)
+    final url = Uri.parse('$_serverUrl/EC_back/api/get_proximos_eventos.php');
 
     try {
       final response = await http.get(url);
@@ -55,143 +58,197 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
     }
   }
 
-  // Função auxiliar para formatar a data (similar à da HomeScreen)
   String _formatApiDate(String apiDate) {
     try {
       final DateTime parsedDate = DateTime.parse(apiDate);
-      return DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR').format(parsedDate); // Formato mais completo
+      // Mudei o formato para ficar mais limpo no card
+      return DateFormat('dd MMM yyyy', 'pt_BR').format(parsedDate).toUpperCase();
     } catch (e) {
       return apiDate;
     }
   }
 
+  // --- NOVA FUNÇÃO: Placeholder (AGORA USANDO A IMAGEM PADRÃO) ---
+Widget _buildImagePlaceholder() {
+  return Image.asset(
+    'assets/images/ec-eventos.png', // <-- O caminho para sua imagem padrão
+    height: 180,
+    width: double.infinity,
+    fit: BoxFit.cover, // Garante que a imagem cubra o espaço do card
+  );
+}
+  // -------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context, listen: false).user;
+    final bool isAdmin = (user?.role == 'admin');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Próximos Eventos'),
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
-      // drawer: const AppDrawer(currentPage: 'Agenda'), // Opcional
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
-              ? Center( /* ... mostrar erro ... */ )
-              : _upcomingEvents.isEmpty // Verifica se a lista está vazia
+              ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red)))
+              : _upcomingEvents.isEmpty
                   ? const Center(
                       child: Text(
                         'Nenhum evento futuro encontrado.',
                         style: TextStyle(color: AppColors.secondaryText, fontSize: 16),
                       ),
                     )
-                  : // ... dentro do Widget build() de _ProximosEventosScreenState
-         // ... dentro do Widget build() de _ProximosEventosScreenState
-   ListView.builder(
-    padding: const EdgeInsets.all(16.0),
-    itemCount: _upcomingEvents.length,
-   // Dentro do seu ListView.builder
-itemBuilder: (context, index) {
-  final event = _upcomingEvents[index];
-  final bool hasInscricao = (event['inscricao'] ?? 0) == 1;
-  final int? eventId = event['id']; // Pegamos o ID para o botão
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _upcomingEvents.length,
+                      // --- MUDANÇA COMPLETA NO ITEMBUILDER ---
+                      itemBuilder: (context, index) {
+                        final event = _upcomingEvents[index];
+                        final int? eventId = event['id'];
+                        final String? imageUrl = event['imagem_url'];
+                        final String? fullImageUrl = imageUrl != null ? '$_serverUrl/EC_back$imageUrl' : null;
 
-  // NÃO HÁ MAIS INKWELL AQUI. O return começa direto com o Card.
-  return Card(
-    color: AppColors.surface,
-    margin: const EdgeInsets.only(bottom: 12.0),
-    elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        // --- SOLUÇÃO 1: DEIXAR O CARD MAIS ALTO ---
-        // Adicionamos padding vertical ao título do card "fechado"
-        tilePadding: const EdgeInsets.symmetric(vertical: 30.0, horizontal: 16.0),
-        
-        // O título (cabeçalho do card)
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              event['titulo'] ?? 'Evento sem título',
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryText),
-            ),
-            const SizedBox(height: 30),
-            Text(
-              _formatApiDate(event['data_evento'] ?? ''),
-              style: const TextStyle(
-                  fontSize: 14, color: AppColors.secondaryText),
-            ),
-          ],
-        ),
-        trailing: const Icon(
-          Icons.keyboard_arrow_down,
-          color: AppColors.accent,
-        ),
-        
-        // O conteúdo que aparece ao expandir
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event['descricao'] ?? 'Descrição indisponível.',
-                  style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.secondaryText,
-                      height: 1.5),
-                ),
-                if (hasInscricao) // Só mostra o botão se tiver inscrição
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        // --- SOLUÇÃO 2: BOTÃO NAVEGA ---
-                        onPressed: eventId == null ? null : () {
-                          // A LÓGICA DE NAVEGAÇÃO VEM PARA CÁ
-                          print('Botão "Inscrever-se" clicado para ID: $eventId');
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => InscricaoEventoScreen(eventId: eventId),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                        // Este Card substitui o ExpansionTile
+                        return Card(
+                          clipBehavior: Clip.antiAlias, // Corta a imagem para ter borda arredondada
+                          color: AppColors.surface,
+                          margin: const EdgeInsets.only(bottom: 20.0), // Espaçamento maior
+                          elevation: 3,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        child: const Text(
-                          'Inscrever-se',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              
+                              // --- 1. A IMAGEM ---
+                              (fullImageUrl != null)
+                                ? Image.network(
+                                    fullImageUrl,
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    // Placeholder enquanto carrega
+                                    loadingBuilder: (context, child, progress) {
+                                      return progress == null
+                                          ? child
+                                          : Container(
+                                              height: 180,
+                                              child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                                            );
+                                    },
+                                    // O que mostrar se a imagem falhar (link quebrado)
+                                    errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+                                  )
+                                : _buildImagePlaceholder(), // Placeholder se a imagem for nula
+
+                              // --- 2. O CONTEÚDO DE TEXTO ---
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Data (com sua cor de destaque)
+                                    Text(
+                                      _formatApiDate(event['data_evento'] ?? ''),
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.accent), // Usei seu ACCENT
+                                    ),
+                                    const SizedBox(height: 10),
+                                    // Título
+                                    Text(
+                                      event['titulo'] ?? 'Evento sem título',
+                                      style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primaryText),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    // Descrição (limitada a 3 linhas)
+                                    Text(
+                                      event['descricao'] ?? 'Descrição indisponível.',
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          color: AppColors.secondaryText,
+                                          height: 1.5),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // --- 3. OS BOTÕES ---
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                child: Column( // Usei Column para os botões ficarem um sobre o outro
+                                  children: [
+                                    // Botão "Editar" (Só para Admins)
+                                    if (isAdmin)
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton(
+                                          onPressed: eventId == null ? null : () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => EditarEventoScreen(eventId: eventId),
+                                              ),
+                                            );
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.secondaryText,
+                                            side: BorderSide(color: AppColors.secondaryText.withOpacity(0.5)),
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text('Editar Evento'),
+                                        ),
+                                      ),
+                                    
+                                    if (isAdmin) const SizedBox(height: 8), // Espaçador
+                                    
+                                    // Botão "Saiba mais" (Para Todos)
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: eventId == null ? null : () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => InscricaoEventoScreen(eventId: eventId),
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.accent,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Saiba mais',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-},
-  ),
-// ... o resto do código ...,
-// ... o resto do código ...,
     );
   }
 }

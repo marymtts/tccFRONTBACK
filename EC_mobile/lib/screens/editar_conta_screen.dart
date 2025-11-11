@@ -77,7 +77,7 @@ class _EditarContaScreenState extends State<EditarContaScreen> {
 
     try {
       // Chamar a NOVA API
-      final url = Uri.parse('http://192.168.15.174/EC_back/api/atualizar_perfil.php');
+      final url = Uri.parse('https://tccfrontback.onrender.com/api/atualizar_perfil.php');
       final response = await http.post(
         url,
         headers: {

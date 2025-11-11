@@ -19,7 +19,7 @@ class InscricaoEventoScreen extends StatefulWidget {
 
 class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   // --- MUDANÇA: URL do Servidor (use seu IP) ---
-  final String _serverUrl = 'http://192.168.15.174'; 
+  final String _serverUrl = 'https://tccfrontback.onrender.com'; 
 
   late Future<Map<String, dynamic>> _futureEventDetails;
   bool _isRegistering = false; // Controla o loading do botão
@@ -32,7 +32,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
 
   // 1. FUNÇÃO PARA BUSCAR OS DETALHES DO EVENTO
   Future<Map<String, dynamic>> _fetchEventDetails() async {
-    final url = Uri.parse('$_serverUrl/EC_back/api/eventos.php?id=${widget.eventId}');
+    final url = Uri.parse('$_serverUrl/api/eventos.php?id=${widget.eventId}');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -69,7 +69,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
 
     // Tenta realizar a inscrição
     try {
-      final url = Uri.parse('$_serverUrl/EC_back/api/registrar_participacao.php');
+      final url = Uri.parse('$_serverUrl/api/registrar_participacao.php');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

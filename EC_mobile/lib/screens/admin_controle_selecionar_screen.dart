@@ -44,7 +44,7 @@ class _AdminControleSelecionarScreenState extends State<AdminControleSelecionarS
   Future<List<Evento>> _fetchEventos() async {
     final response = await http.get(
       // ATENÇÃO: Use o IP da sua rede (192.168...) ou '10.0.2.2' (emulador)
-      Uri.parse('http://192.168.15.174/EC_back/api/get_proximos_eventos.php')
+      Uri.parse('https://tccfrontback.onrender.com/api/get_proximos_eventos.php')
     );
 
     if (response.statusCode == 200) {

@@ -43,7 +43,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     try {
       // Lembre-se: 'localhost' para iOS, '10.0.2.2' para Emulador Android
       final response = await http.post(
-        Uri.parse('http://192.168.15.174/EC_back/api/validar_checkin.php'), 
+        Uri.parse('https://tccfrontback.onrender.com/api/validar_checkin.php'), 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

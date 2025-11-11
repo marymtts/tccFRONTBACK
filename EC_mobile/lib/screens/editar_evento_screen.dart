@@ -52,7 +52,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
   Future<void> _fetchEventoData() async {
     try {
       // (Lembre-se de trocar pelo seu IP/URL: 10.0.2.2 para emulador, 192.168... para celular)
-      final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php?id=${widget.eventId}');
+      final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php?id=${widget.eventId}');
       final response = await http.get(url);
       
       if (response.statusCode == 200) {
@@ -116,7 +116,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     // --- URL PARA O 'case PUT' ---
     // (Enviamos como POST para a URL com ?id=... para acionar o 'case PUT' 
     // no seu PHP, já que PUT com multipart/form-data é complexo)
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php?id=${widget.eventId}');
+    final url = Uri.parse('https://tccfrontback.onrender.com/EC_back/api/eventos.php?id=${widget.eventId}');
 
     try {
       var request = http.MultipartRequest('POST', url); // (Sim, 'POST')
@@ -178,7 +178,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
 
     try {
       // Chama o 'case DELETE' do seu eventos.php
-      final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php?id=${widget.eventId}');
+      final url = Uri.parse('https://tccfrontback.onrender.com/EC_back/api/eventos.php?id=${widget.eventId}');
       final response = await http.delete(
         url,
         headers: {
@@ -435,7 +435,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     if (_existingImageUrl != null) {
       // O seu PHP salva a URL como '/uploads/eventos/evento_123.png'
       // Precisamos adicionar o IP completo do servidor para o app carregar
-      final String fullImageUrl = 'http://192.168.15.174/EC_back$_existingImageUrl';
+      final String fullImageUrl = 'http://https://tccfrontback.onrender.com/EC_back$_existingImageUrl';
       
       return Image.network(
         fullImageUrl,

@@ -76,7 +76,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
     setState(() { _isLoading = true; });
 
     // 2. URL da API (use o IP da sua rede, não 'localhost' ou '10.0.2.2' se for celular fisico)
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php');
+    final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php');
 
     try {
       // 3. Cria a Requisição "Multipart"

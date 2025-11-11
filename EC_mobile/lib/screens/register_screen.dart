@@ -49,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       // 2. USA A SUA URL CORRETA (sem o Config.apiUrl)
       final response = await http.post(
-        Uri.parse('http://192.168.15.174/EC_back/api/registrar_aluno.php'), 
+        Uri.parse('https://tccfrontback.onrender.com/api/registrar_aluno.php'), 
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'ra': _raController.text.trim(),

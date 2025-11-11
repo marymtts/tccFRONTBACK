@@ -23,7 +23,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
 
   // --- MUDANÇA: Defina a URL do seu servidor aqui ---
   // (Lembre-se: 10.0.2.2 para emulador, 192.168... para celular físico)
-  final String _serverUrl = 'http://192.168.15.174'; 
+  final String _serverUrl = 'https://tccfrontback.onrender.com'; 
   // --------------------------------------------------
 
   @override
@@ -33,7 +33,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
   }
 
   Future<void> _fetchUpcomingEvents() async {
-    final url = Uri.parse('$_serverUrl/EC_back/api/get_proximos_eventos.php');
+    final url = Uri.parse('$_serverUrl/api/get_proximos_eventos.php');
 
     try {
       final response = await http.get(url);

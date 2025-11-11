@@ -66,7 +66,7 @@ class _AdminVerInscritosScreenState extends State<AdminVerInscritosScreen> {
     // Chama a NOVA API que vamos criar
     final response = await http.get(
       // ATENÇÃO: Use o IP da sua rede (192.168...) ou '10.0.2.2' (emulador)
-      Uri.parse('http://192.168.15.174/EC_back/api/get_inscritos_evento.php?id_evento=${widget.eventoId}'),
+      Uri.parse('https://tccfrontback.onrender.com/api/get_inscritos_evento.php?id_evento=${widget.eventoId}'),
       headers: {
         'Authorization': 'Bearer $token', // Envia o token de admin
       },

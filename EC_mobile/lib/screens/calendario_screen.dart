@@ -37,7 +37,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
   // Função que chama sua API PHP
   Future<void> _fetchEvents() async {
     // URL para testar no CHROME (WEB)
-    final url = Uri.parse('http://192.168.15.174/EC_back/api/eventos.php'); 
+    final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php'); 
     
 
     try {

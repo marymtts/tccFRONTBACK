@@ -116,7 +116,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     // --- URL PARA O 'case PUT' ---
     // (Enviamos como POST para a URL com ?id=... para acionar o 'case PUT' 
     // no seu PHP, já que PUT com multipart/form-data é complexo)
-    final url = Uri.parse('https://tccfrontback.onrender.com/EC_back/api/eventos.php?id=${widget.eventId}');
+    final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php?id=${widget.eventId}');
 
     try {
       var request = http.MultipartRequest('POST', url); // (Sim, 'POST')
@@ -178,7 +178,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
 
     try {
       // Chama o 'case DELETE' do seu eventos.php
-      final url = Uri.parse('https://tccfrontback.onrender.com/EC_back/api/eventos.php?id=${widget.eventId}');
+      final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php?id=${widget.eventId}');
       final response = await http.delete(
         url,
         headers: {

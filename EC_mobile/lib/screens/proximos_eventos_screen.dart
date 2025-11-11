@@ -109,7 +109,7 @@ Widget _buildImagePlaceholder() {
                         final event = _upcomingEvents[index];
                         final int? eventId = event['id'];
                         final String? imageUrl = event['imagem_url'];
-                        final String? fullImageUrl = imageUrl != null ? '$_serverUrl/EC_back$imageUrl' : null;
+                        final String? fullImageUrl = imageUrl != null ? '$_serverUrl$imageUrl' : null;
 
                         // Este Card substitui o ExpansionTile
                         return Card(

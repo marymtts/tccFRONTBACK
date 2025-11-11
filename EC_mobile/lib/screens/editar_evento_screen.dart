@@ -435,7 +435,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     if (_existingImageUrl != null) {
       // O seu PHP salva a URL como '/uploads/eventos/evento_123.png'
       // Precisamos adicionar o IP completo do servidor para o app carregar
-      final String fullImageUrl = 'http://https://tccfrontback.onrender.com/EC_back$_existingImageUrl';
+      final String fullImageUrl = 'https://tccfrontback.onrender.com$_existingImageUrl';
       
       return Image.network(
         fullImageUrl,

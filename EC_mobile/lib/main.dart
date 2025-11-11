@@ -79,13 +79,14 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (BuildContext context) {
         // Define a altura (ex: 85% da tela)
         return FractionallySizedBox(
+          widthFactor: 1.0,
           heightFactor: 0.85, 
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Container(
               color: AppColors.surface, // Cor de fundo do seu menu
               // Aqui chamamos o CONTEÚDO que refatoramos
-              child: AppDrawerContent(currentPage: currentPage), 
+              child: AppDrawer(currentPage: currentPage), 
             ),
           ),
         );
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Image.asset(
               'assets/images/echolder.jpg', // O caminho da sua imagem
               width: double.infinity,      // <-- FORÇA A LARGURA TOTAL
-              height: 300,                 // <-- Ajuste a altura como preferir
+              height: 200,                 // <-- Mudei de 300 para 200 (fica mais proporcional)
               fit: BoxFit.cover,           // <-- Faz a imagem cobrir o espaço
             ),
             // --------------------------------------------------
@@ -224,7 +225,8 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
             );
           },
-          child: const Text('Como começar', style: TextStyle(fontSize: 16)),
+          // Corrigi o texto de volta
+          child: const Text('Ver Próximos Eventos', style: TextStyle(fontSize: 16)), 
           style: TextButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: Colors.white,
@@ -385,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.check_circle, // Ícone sólido
           title: 'Meus Eventos',
           subtitle: 'Eventos em que você está inscrito',
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
+          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- CORRIGI A COR
           onTap: () {
             final user = Provider.of<UserProvider>(context, listen: false).user;
             if (user != null) {

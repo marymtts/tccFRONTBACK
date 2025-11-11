@@ -19,9 +19,9 @@ import 'package:shared_preferences/shared_preferences.dart'; // Para o Logout
 import 'package:ec_mobile/screens/criar_evento_screen.dart';
 
 // -----------------------------------------------------------------
-// CLASSE 1: O CONTAINER (O DRAWER LATERAL QUE VOCÊ JÁ TINHA)
+// CLASSE 1: O CONTAINER (O DRAWER LATERAL ANTIGO)
 // -----------------------------------------------------------------
-// (Nós não vamos mais usar esta, mas é bom manter)
+// (Não estamos mais usando, mas é bom manter)
 class AppDrawer extends StatelessWidget {
   final String currentPage;
 
@@ -128,8 +128,7 @@ class AppDrawerContent extends StatelessWidget {
     );
   }
 
-  // --- Constrói os itens do menu (Movido para cá) ---
-  // --- Ajusta as cores E O TAMANHO dos itens para o TEMA ESCURO ---
+  // --- Constrói os itens do menu (COM A MUDANÇA PARA "ROBUSTO") ---
   Widget _buildNavItem(
     BuildContext context, {
     required IconData icon,
@@ -138,16 +137,11 @@ class AppDrawerContent extends StatelessWidget {
     required String currentPage,
     required VoidCallback onTap,
   }) {
-    // Verifica se este é o item da página ativa
     final bool isActive = (currentPage == pageName);
-
-    // Define as cores baseadas no fundo escuro
     final Color color = isActive ? AppColors.accent : AppColors.secondaryText;
-    final Color? tileColor = isActive ? AppColors.accent.withOpacity(0.1) : null;
+    final Color? tileColor = null;
 
     // --- 1. AUMENTA O PADDING VERTICAL ---
-    // Isso torna cada item mais "alto" ou "robusto"
-    // (O padrão é 8.0, vamos aumentar bastante)
     const EdgeInsets itemPadding = EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0);
 
     // --- 2. AUMENTA O TAMANHO DO ÍCONE E DA FONTE ---
@@ -165,13 +159,15 @@ class AppDrawerContent extends StatelessWidget {
           fontSize: fontSize, // <-- APLICA O TAMANHO DA FONTE
         ),
       ),
-      tileColor: tileColor, // Cor de fundo se estiver ativo
+      tileColor: tileColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
       onTap: onTap,
     );
   }
+
+
   @override
   Widget build(BuildContext context) {
     // 1. Pega o usuário logado

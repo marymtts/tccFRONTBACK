@@ -2,7 +2,7 @@
 
  <uses-permission android:name="android.permission.CAMERA" />
     <application
-        android:label="ec_mobile"
+        android:label="EC Eventos Cotil"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         android:usesCleartextTraffic="true"> 

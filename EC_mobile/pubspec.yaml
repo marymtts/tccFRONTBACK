@@ -54,6 +54,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter_native_splash:
   color: "#10141F"  # <-- Sua cor AppColors.background
@@ -65,6 +66,17 @@ flutter_native_splash:
 
     icon_background_color: "#10141F"
 
+
+flutter_launcher_icons:
+  android: true  # Gera ícones para Android
+  ios: true      # Gera ícones para iOS
+  
+  # Caminho para a sua imagem de ícone (a flor quadrada)
+  image_path: "assets/images/logo-flor.png" 
+  
+  # (Opcional) Remove o "fundo" branco que o Android coloca em ícones antigos
+  adaptive_icon_background: "#10141F" # Sua cor de fundo AppColors.background
+  adaptive_icon_foreground: "assets/images/logo-flor.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -54,6 +54,21 @@ switch ($method) {
             
             // --- 3. ADICIONA A CONTAGEM AO RESULTADO ---
             $evento['inscritos_count'] = $inscritos_count;
+
+            // --- 3. (NOVO!) VERIFICA SE O USUÁRIO ATUAL ESTÁ INSCRITO ---
+            $evento['usuario_esta_inscrito'] = false; // Começa como falso
+            if (isset($_GET['user_id'])) {
+                $id_aluno = intval($_GET['user_id']);
+                
+                $stmt_check_user = $db->prepare("SELECT 1 FROM participacao WHERE id_aluno = :id_aluno AND id_evento = :id_evento LIMIT 1");
+                $stmt_check_user->bindParam(':id_aluno', $id_aluno);
+                $stmt_check_user->bindParam(':id_evento', $id_evento);
+                $stmt_check_user->execute();
+                
+                if ($stmt_check_user->rowCount() > 0) {
+                    $evento['usuario_esta_inscrito'] = true; // Define como verdadeiro se encontrou
+                }
+            }
             
             // --- 4. ENVIA TUDO JUNTO ---
             http_response_code(200); // OK

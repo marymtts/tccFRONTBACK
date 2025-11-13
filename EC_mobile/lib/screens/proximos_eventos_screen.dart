@@ -280,7 +280,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
                                               
                                               if (isAdmin) const SizedBox(height: 8), 
                                               
-                                              SizedBox(
+                                              SizedBox( 
                                                 width: double.infinity,
                                                 child: ElevatedButton(
                                                   onPressed: eventId == null ? null : () {

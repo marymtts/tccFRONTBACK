@@ -111,6 +111,9 @@ switch ($method) {
             $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; 
             $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
 
+            // LINHA DE DEBUG:
+            file_put_contents('debug_edit.txt', 'Recebi a data: ' . $data_evento);
+
             // LÓGICA DA IMAGEM (com opção de remover)
             $imagem_url_para_db = null; 
             $atualizar_imagem_url = false; 

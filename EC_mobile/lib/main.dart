@@ -43,8 +43,11 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme), 
         elevatedButtonTheme: ElevatedButtonThemeData( 
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: AppColors.primaryText,
+            backgroundColor: AppColors.accent, // Fundo Dourado
+            
+            // Texto PRETO para melhor contraste
+            foregroundColor: AppColors.background, // <-- MUDADO DE primaryText
+            
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -193,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 
+                const SizedBox(height: 16,),
                 // Seção "Quem Somos" e Rodapé
                 Container(
                   width: double.infinity, 
@@ -261,25 +265,51 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 30),
         
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
-            );
-          },
-          child: const Text('Ver Próximos Eventos', style: TextStyle(fontSize: 16)), 
-          style: TextButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+        Container(
+          width: 250, // Largura fixa para o botão na Home
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.accentOrange, AppColors.accent], // Cores do degradê
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(8), // Borda arredondada
+            boxShadow: [ // Sombra sutil para destacar
+              BoxShadow(
+                color: AppColors.accent.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
+              );
+            },
+            // Remove o background do ElevatedButton para que o gradiente do Container apareça
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent, 
+              shadowColor: Colors.transparent, // Remove a sombra padrão do botão
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Ver Próximos Eventos',
+              style: GoogleFonts.poppins( // Garante que a fonte seja Poppins
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white, // Texto preto para melhor contraste no gradiente
+              ),
+            ),
           ),
         ),
+        // ---------------------------------
       ],
     );
-  } 
-  
+  }
   // --- O RESTO DAS SUAS FUNÇÕES (sem mudanças) ---
 
   Widget _buildAboutUsSection() {
@@ -400,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.view_agenda_outlined,
           title: 'Próximos Eventos',
           subtitle: 'Fique por dentro do que está por vir!',
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
+          iconBackgroundColor: AppColors.iconBgProximos,
           onTap: () {
             Navigator.push(
               context,
@@ -415,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.calendar_today,
           title: 'Calendário',
           subtitle: 'Explore e programe suas participações',
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863),
+          iconBackgroundColor: AppColors.iconBgProximos,
           onTap: () {
             Navigator.push(
               context,
@@ -429,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.check_circle, // Ícone sólido
           title: 'Meus Eventos',
           subtitle: 'Eventos em que você está inscrito',
-          iconBackgroundColor:const Color.fromRGBO(240, 28, 28, 0.863), 
+          iconBackgroundColor:AppColors.iconBgProximos, 
           onTap: () {
             final user = Provider.of<UserProvider>(context, listen: false).user;
             if (user != null) {

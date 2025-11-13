@@ -1,14 +1,15 @@
 // lib/screens/inscricao_evento_screen.dart
 
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:ec_mobile/providers/user_provider.dart';
-import 'package:ec_mobile/screens/login_screen.dart'; // Para o caso do usuário não estar logado
-import 'package:shared_preferences/shared_preferences.dart'; // <-- IMPORT NECESSÁRIO
+import 'package:ec_mobile/screens/login_screen.dart'; 
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 class InscricaoEventoScreen extends StatefulWidget {
   final int eventId;
@@ -23,11 +24,8 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
 
   late Future<Map<String, dynamic>> _futureEventDetails;
   bool _isRegistering = false; 
-
-  // --- 1. ADICIONE ESTAS VARIÁVEIS ---
   bool _estaInscrito = false;
   bool _isCanceling = false;
-  // ---------------------------------
 
   @override
   void initState() {
@@ -35,15 +33,11 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     _futureEventDetails = _fetchEventDetails();
   }
 
-  // --- 2. SUBSTITUA ESTA FUNÇÃO ---
   Future<Map<String, dynamic>> _fetchEventDetails() async {
-    // Pega o usuário ATUAL (se estiver logado)
     final user = Provider.of<UserProvider>(context, listen: false).user;
     
-    // Constrói a URL base
     String urlString = '$_serverUrl/api/eventos.php?id=${widget.eventId}';
     
-    // (NOVO!) Se o usuário estiver logado, adiciona ele na URL
     if (user != null) {
       urlString += '&user_id=${user.id}';
     }
@@ -54,7 +48,6 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         
-        // (NOVO!) Atualiza o estado de "inscrito"
         setState(() {
           _estaInscrito = data['usuario_esta_inscrito'] ?? false;
         });
@@ -67,12 +60,9 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       throw Exception('Erro de conexão: $e');
     }
   }
-  // --- FIM DA MUDANÇA 2 ---
 
-  // (Função _realizarInscricao - modificada para atualizar o estado)
   Future<void> _realizarInscricao() async {
     setState(() { _isRegistering = true; });
-
     final user = Provider.of<UserProvider>(context, listen: false).user;
 
     if (user == null) {
@@ -81,7 +71,6 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       setState(() { _isRegistering = false; });
       return;
     }
-    
     if (user.role != 'aluno') {
       _showFeedbackSnackbar('Apenas alunos podem se inscrever em eventos.', isError: true);
       setState(() { _isRegistering = false; });
@@ -98,19 +87,14 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
           'id_evento': widget.eventId.toString(),
         }),
       );
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 201) { 
         _showFeedbackSnackbar(responseData['message'] ?? 'Inscrição realizada com sucesso!', isError: false);
-        
-        // --- ATUALIZA O ESTADO DA TELA ---
         setState(() {
           _estaInscrito = true;
         });
-        _futureEventDetails = _fetchEventDetails(); // Recarrega os dados (contagem, etc)
-        // ---------------------------------
-
+        _futureEventDetails = _fetchEventDetails(); // Recarrega para atualizar a contagem
       } else {
         _showFeedbackSnackbar(responseData['message'] ?? 'Erro ${response.statusCode}', isError: true);
       }
@@ -123,7 +107,6 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     }
   }
 
-  // --- 3. ADICIONE A FUNÇÃO DE CANCELAR ---
   Future<void> _cancelarInscricao() async {
     setState(() { _isCanceling = true; });
 
@@ -148,17 +131,14 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
           'id_evento': widget.eventId.toString(),
         }),
       );
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200) {
         _showFeedbackSnackbar(responseData['message'] ?? 'Inscrição cancelada!', isError: false);
-        // Atualiza o estado da tela
         setState(() {
           _estaInscrito = false;
         });
-        // Recarrega os detalhes (para atualizar a contagem de vagas)
-        _futureEventDetails = _fetchEventDetails();
+        _futureEventDetails = _fetchEventDetails(); // Recarrega para atualizar a contagem
       } else {
         _showFeedbackSnackbar(responseData['message'] ?? 'Erro ${response.statusCode}', isError: true);
       }
@@ -170,35 +150,39 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       }
     }
   }
-  // --- FIM DA MUDANÇA 3 ---
 
-  // --- 4. SUBSTITUA A FUNÇÃO _buildEventContent ---
+  // --- FUNÇÃO DE LAYOUT PRINCIPAL (ATUALIZADA) ---
   Widget _buildEventContent(Map<String, dynamic> event) {
     final String? imageUrl = event['imagem_url'];
-    // --- CORREÇÃO DA URL DA IMAGEM ---
     final String? fullImageUrl = imageUrl != null ? '$_serverUrl$imageUrl' : null;
-    // ---------------------------------
     final bool hasInscricao = (event['inscricao'] == '1' || event['inscricao'] == 1);
+    
+    // Converte os dados para a barra de progresso
+    final int maxVagas = int.tryParse(event['max_participantes'].toString() ?? '0') ?? 0;
+    final int inscritos = int.tryParse(event['inscritos_count'].toString() ?? '0') ?? 0;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- IMAGEM HEADER (MAIS ALTA) ---
           (fullImageUrl != null)
               ? Image.network(
                   fullImageUrl,
-                  height: 250,
+                  height: 280, // <-- AUMENTAMOS A ALTURA
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
                 )
               : _buildImagePlaceholder(),
 
+          // --- SEÇÃO DE CONTEÚDO (REDESENHADA) ---
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Título
                 Text(
                   event['titulo'] ?? 'Evento sem título',
                   style: const TextStyle(
@@ -208,29 +192,60 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                     height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 20),
-                
-                _buildInfoRow(
-                  Icons.calendar_today_outlined,
-                  _formatApiDate(event['data_evento'] ?? ''),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 30), // Mais espaço
 
-                if(hasInscricao)
-                _buildInfoRow(
-                  Icons.people_outline,
-                  _formatVagas(event['max_participantes'], event['inscritos_count']),
+                // --- TÍTULO DA SEÇÃO (da inspiração) ---
+                Text(
+                  'Informações do Evento',
+                  style: const TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
                 ),
+                const SizedBox(height: 24),
                 
+                // --- Bloco de Data (Novo) ---
+                _buildInfoBlock(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Data',
+                  value: _formatApiDate(event['data_evento'] ?? ''),
+                ),
+                const SizedBox(height: 24),
+
+                // --- NOVO BLOCO DE HORÁRIO ---
+                _buildInfoBlock(
+                  icon: Icons.access_time_outlined, // Ícone de relógio
+                  label: 'Horário',
+                  value: _formatApiTime(event['data_evento'] ?? ''), // ex: "19:00"
+                ),
+                const SizedBox(height: 24),
+
+                
+
+                // --- Bloco de Vagas (Novo) ---
+                if(hasInscricao) ...[
+                  _buildInfoBlock(
+                    icon: Icons.people_outline,
+                    label: 'Vagas',
+                    value: _formatVagas(event['max_participantes'], event['inscritos_count']),
+                  ),
+                  const SizedBox(height: 12),
+                  // --- Barra de Progresso (Nova) ---
+                  _buildProgressBar(inscritos, maxVagas),
+                ],
+                
+                // Divisor sutil
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  padding: EdgeInsets.symmetric(vertical: 30.0), // Mais espaço
                   child: Divider(color: AppColors.secondaryText, height: 0.5),
                 ),
 
+                // Descrição
                 Text(
                   'Sobre o Evento',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 20, // Título maior
                     fontWeight: FontWeight.w600,
                     color: AppColors.primaryText,
                   ),
@@ -241,14 +256,14 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.secondaryText,
-                    height: 1.6,
+                    height: 1.6, 
                   ),
                 ),
 
-                // --- ADIÇÃO DO BOTÃO "CANCELAR" ---
-                if (_estaInscrito) // Só mostra se o usuário ESTÁ inscrito
+                // Botão "Cancelar Inscrição"
+                if (_estaInscrito) 
                   Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
+                    padding: const EdgeInsets.only(top: 30.0), 
                     child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -267,7 +282,6 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
                       ),
                     ),
                   ),
-                // ---------------------------------
                 
                 const SizedBox(height: 100), 
               ],
@@ -277,56 +291,116 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
       ),
     );
   }
-  // --- FIM DA MUDANÇA 4 ---
 
-  // ... (funções _buildImagePlaceholder, _buildInfoRow, _formatVagas, _formatApiDate - sem mudanças) ...
-  Widget _buildImagePlaceholder() {
-    return Image.asset(
-      'assets/images/ec-eventos.png', // <-- Sua imagem padrão
-      height: 250,
-      width: double.infinity,
-      fit: BoxFit.cover,
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text) {
+  // --- WIDGET AUXILIAR (NOVO) - Inspirado no seu print ---
+  Widget _buildInfoBlock({required IconData icon, required String label, required String value}) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start, // Alinha pelo topo
       children: [
-        Icon(icon, color: AppColors.secondaryText, size: 18),
-        const SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(
-            color: AppColors.secondaryText,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+        Icon(icon, color: AppColors.secondaryText, size: 24), // Ícone um pouco maior
+        const SizedBox(width: 16),
+        
+        Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.secondaryText,
+                fontSize: 16, // Label menor
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.primaryText,
+                fontSize: 16, // Valor maior
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
         ),
       ],
     );
   }
 
+  // --- WIDGET AUXILIAR (NOVO) - A Barra de Progresso ---
+  Widget _buildProgressBar(int inscritos, int maxVagas) {
+    // Só mostra a barra se houver vagas limitadas
+    if (maxVagas == 0) return const SizedBox.shrink(); 
+    
+    // Calcula a porcentagem
+    double percentage = 0.0;
+    if (maxVagas > 0) {
+      percentage = (inscritos / maxVagas).clamp(0.0, 1.0);
+    }
+    
+    return Container(
+      height: 8, // Altura da barra
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+        color: AppColors.surface, // Fundo cinza escuro da barra
+      ),
+      child: LinearProgressIndicator(
+        value: percentage, // O preenchimento
+        backgroundColor: AppColors.surface, // Cor de fundo
+        color: AppColors.accent, // Cor do progresso (vermelho)
+      ),
+    );
+  }
+
+  // --- FUNÇÃO AUXILIAR (ATUALIZADA) - Texto de Vagas ---
   String _formatVagas(dynamic max, dynamic current) {
     final int maxVagas = int.tryParse(max.toString() ?? '0') ?? 0;
     final int inscritos = int.tryParse(current.toString() ?? '0') ?? 0;
 
     if (maxVagas > 0) {
-      return '$inscritos / $maxVagas vagas preenchidas';
+      return '$inscritos / $maxVagas inscritos'; // Novo texto
     }
     
-    return 'Vagas ilimitadas ($inscritos inscritos)';
+    return '$inscritos inscritos (Ilimitado)'; // Novo texto
+  }
+
+  // (O resto do seu código _buildImagePlaceholder, _formatApiDate, _buildStickyButton, 
+  // _showFeedbackSnackbar, e build() continua o MESMO de antes)
+  
+  Widget _buildImagePlaceholder() {
+    return Image.asset(
+      'assets/images/ec-eventos.png', 
+      height: 280, // <-- AUMENTAMOS A ALTURA
+      width: double.infinity,
+      fit: BoxFit.cover,
+    );
   }
 
   String _formatApiDate(String apiDate) {
     try {
       final DateTime parsedDate = DateTime.parse(apiDate);
-      return DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR').format(parsedDate);
+      return DateFormat('EEEE, dd \'de\' MMMM \'de\' yyyy', 'pt_BR').format(parsedDate); // Formato mais completo
     } catch (e) {
       return apiDate;
     }
+    try {
+    final DateTime parsedDate = DateTime.parse(apiDate);
+    return DateFormat('HH:mm', 'pt_BR').format(parsedDate); // Formato "19:00"
+  } catch (e) {
+    return "--:--";
+  }
   }
 
-  // --- 5. SUBSTITUA A FUNÇÃO _buildStickyButton ---
+  String _formatApiTime(String apiDate) {
+    try {
+      final DateTime parsedDate = DateTime.parse(apiDate);
+      return DateFormat('HH:mm', 'pt_BR').format(parsedDate); // Formato "19:00"
+    } catch (e) {
+      return "--:--";
+    }
+  }
+
   Widget _buildStickyButton(Map<String, dynamic> event) {
     final bool hasInscricao = (event['inscricao'] == '1' || event['inscricao'] == 1);
 
@@ -353,34 +427,63 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     }
     
     return Container(
+      // 1. O container da "barra" (fundo escuro, borda)
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.secondaryText.withOpacity(0.2), width: 0.5)),
       ),
-      child: ElevatedButton(
-        onPressed: (_isRegistering || isDisabled) ? null : _realizarInscricao,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isDisabled ? Colors.grey[700] : AppColors.accent.withOpacity(0.5),
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+      child: Container( 
+        // 2. O NOVO container do "botão" (para o gradiente)
+        decoration: BoxDecoration(
+          // Aplica o gradiente SOMENTE se o botão estiver ATIVO
+          gradient: isDisabled 
+              ? null // Sem gradiente se desabilitado
+              : const LinearGradient(
+                  colors: [AppColors.accentOrange, AppColors.accent], // Dourado
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+          // Cor sólida CINZA se estiver DESABILITADO
+          color: isDisabled ? Colors.grey[700] : null, 
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isDisabled ? [] : [ // Sombra só se estiver ATIVO
+            BoxShadow(
+              color: AppColors.accent.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        child: _isRegistering
-            ? const CircularProgressIndicator(color: Colors.white)
-            : Text(
-                buttonText, 
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+        child: ElevatedButton(
+          // 3. O ElevatedButton agora é TRANSPARENTE
+          onPressed: (_isRegistering || isDisabled) ? null : _realizarInscricao,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent, // <-- ESSENCIAL
+            shadowColor: Colors.transparent, // <-- ESSENCIAL
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: _isRegistering
+              // 4. O Spinner agora é PRETO (para o fundo dourado)
+              ? const CircularProgressIndicator(color: AppColors.background)
+              // 5. O Texto agora é PRETO (para o fundo dourado)
+              : Text(
+                  buttonText, 
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    // Cor do texto dinâmica
+                    color: isDisabled ? AppColors.secondaryText : AppColors.primaryText,
+                  ),
+                ),
+        ),
       ),
     );
   }
-  // --- FIM DA MUDANÇA 5 ---
 
-  // ... (função _showFeedbackSnackbar e build() - sem mudanças) ...
   void _showFeedbackSnackbar(String message, {required bool isError}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

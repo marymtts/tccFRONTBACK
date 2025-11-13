@@ -429,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.check_circle, // Ícone sólido
           title: 'Meus Eventos',
           subtitle: 'Eventos em que você está inscrito',
-          iconBackgroundColor: AppColors.accent, 
+          iconBackgroundColor:const Color.fromRGBO(240, 28, 28, 0.863), 
           onTap: () {
             final user = Provider.of<UserProvider>(context, listen: false).user;
             if (user != null) {

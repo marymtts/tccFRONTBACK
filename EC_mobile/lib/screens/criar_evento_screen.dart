@@ -31,7 +31,8 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   // -----------------------------------------------------------------
 
   // Variáveis para data e imagem
-  DateTime? _selectedDate; // Guarda a data selecionada
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime; // Guarda a data selecionada
   XFile? _selectedImage; // Guarda o arquivo de imagem selecionado
   
   bool _isLoading = false;
@@ -95,6 +96,23 @@ Future<void> _pickImage() async {
       setState(() {
         _selectedDate = picked;
       });
+      
+    }
+    
+  }
+  
+
+  // --- Função para mostrar o TimePicker (Relógio) ---
+  Future<void> _pickTime(BuildContext context) async {
+    
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked; // Armazena a hora selecionada
+      });
     }
   }
 
@@ -108,31 +126,46 @@ Future<void> _pickImage() async {
       _showFeedbackSnackbar('Por favor, selecione uma data para o evento.', isError: true);
       return;
     }
+    
+    // --- MUDANÇA 1: Validar o horário ---
+    if (_selectedTime == null) { 
+      _showFeedbackSnackbar('Por favor, selecione um horário para o evento.', isError: true);
+      return;
+    }
+    // ------------------------------------
 
     setState(() { _isLoading = true; });
 
-    // 2. URL da API (use o IP da sua rede, não 'localhost' ou '10.0.2.2' se for celular fisico)
+    // 2. URL da API (está correta)
     final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php');
 
     try {
+      // --- MUDANÇA 2: Combinar data e hora ---
+      final DateTime finalDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+      // ---------------------------------------
+
       // 3. Cria a Requisição "Multipart"
       var request = http.MultipartRequest('POST', url);
 
       // 4. Adiciona os campos de TEXTO
       request.fields['titulo'] = _tituloController.text;
       request.fields['descricao'] = _descricaoController.text;
-      request.fields['data_evento'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
       
-      // --- MODIFICADO (PASSO 3): Envia os novos dados ---
-      // Envia "true" ou "false" como string, que o PHP vai ler
+      // --- MUDANÇA 3: Enviar a data e hora combinadas ---
+      request.fields['data_evento'] = finalDateTime.toIso8601String(); // Formato 'AAAA-MM-DD HH:MM:SS'
+      // ----------------------------------------------------
+      
+      // (O resto do seu código está perfeito)
       request.fields['inscricao'] = _requerInscricao.toString(); 
-      
-      // Envia o valor do controller. Se estiver vazio, envia '0'
-      // A API PHP (que já corrigimos) entende '0' ou NULL como ilimitado.
       request.fields['max_participantes'] = _maxParticipantesController.text.isEmpty
-                                            ? '0' 
-                                            : _maxParticipantesController.text;
-      // -------------------------------------------------
+                                          ? '0' 
+                                          : _maxParticipantesController.text;
 
       // 5. Adiciona o arquivo de IMAGEM
       if (_selectedImage != null) {
@@ -171,7 +204,7 @@ Future<void> _pickImage() async {
       }
     } catch (e) {
       print('Erro ao criar evento: $e');
-      _showFeedbackSnackbar('Erro de conexão. Verifique o XAMPP e a URL.', isError: true);
+      _showFeedbackSnackbar('Erro de conexão. Verifique o Render.', isError: true); // Atualizei a msg de erro
     } finally {
       setState(() { _isLoading = false; });
     }
@@ -257,6 +290,34 @@ Future<void> _pickImage() async {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // --- NOVO SELETOR DE HORÁRIO ---
+                    InkWell(
+                      onTap: () => _pickTime(context), // Chama a nova função
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _selectedTime == null
+                                  ? 'Selecione um horário'
+                                  : _selectedTime!.format(context), // Formata ex: "19:00"
+                              style: TextStyle(color: _selectedTime == null ? AppColors.secondaryText : Colors.white, fontSize: 16),
+                            ),
+                            const Icon(Icons.access_time, color: AppColors.secondaryText),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // ---------------------------
+                    const SizedBox(height: 24),
+                    
                     const SizedBox(height: 24),
 
                     // --- ADICIONADO (PASSO 2): Novos campos do formulário ---

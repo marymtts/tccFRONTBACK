@@ -32,6 +32,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
   // Variáveis de estado (iguais)
   bool _requerInscricao = true;
   DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
   XFile? _selectedImage; // Guarda a *nova* imagem selecionada
   
   // --- NOVAS Variáveis de Estado ---
@@ -58,12 +59,17 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        // --- CORREÇÃO AQUI ---
+        // Pega a string de data/hora completa (ex: '2025-11-13 19:00:00')
+        final DateTime parsedDate = DateTime.parse(data['data_evento']);
         
         // --- Preenche o formulário com os dados do banco ---
         setState(() {
           _tituloController.text = data['titulo'] ?? '';
           _descricaoController.text = data['descricao'] ?? '';
           _selectedDate = DateTime.parse(data['data_evento']);
+          _selectedTime = TimeOfDay.fromDateTime(parsedDate);
           _requerInscricao = (data['inscricao'] == '1' || data['inscricao'] == 1);
           _maxParticipantesController.text = data['max_participantes']?.toString() ?? '0';
           _existingImageUrl = data['imagem_url']; // Guarda a URL da imagem atual
@@ -140,36 +146,67 @@ Future<void> _pickImage() async {
       setState(() { _selectedDate = picked; });
     }
   }
+  Future<void> _pickTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked; // Armazena a hora selecionada
+      });
+    }
+  }
+
   // --- FIM DAS FUNÇÕES IDÊNTICAS ---
 
-  // --- FUNÇÃO MODIFICADA: Envia a ATUALIZAÇÃO para a API ---
+// --- FUNÇÃO MODIFICADA: Envia a ATUALIZAÇÃO para a API ---
   Future<void> _submitUpdateEvent() async {
+    // 1. Valida o formulário
     if (!_formKey.currentState!.validate() || _selectedDate == null) {
       return;
     }
+    
+    // --- MUDANÇA 1: Validar o horário ---
+    if (_selectedTime == null) { 
+      _showFeedbackSnackbar('Por favor, selecione um horário.', isError: true);
+      return;
+    }
+    // ------------------------------------
+
     setState(() { _isUpdating = true; });
 
-    // --- URL PARA O 'case PUT' ---
-    // (Enviamos como POST para a URL com ?id=... para acionar o 'case PUT' 
-    // no seu PHP, já que PUT com multipart/form-data é complexo)
+    // URL (está correta)
     final url = Uri.parse('https://tccfrontback.onrender.com/api/eventos.php?id=${widget.eventId}');
 
     try {
+      // --- MUDANÇA 2: Combinar data e hora ---
+      final DateTime finalDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour, // <-- Pega a hora
+        _selectedTime!.minute, // <-- Pega o minuto
+      );
+      // ---------------------------------------
+
       var request = http.MultipartRequest('POST', url); // (Sim, 'POST')
 
       // Adiciona os campos de TEXTO
       request.fields['titulo'] = _tituloController.text;
       request.fields['descricao'] = _descricaoController.text;
-      request.fields['data_evento'] = DateFormat('yyyy-MM-dd HH:mm:ss').format(_selectedDate!); // Envia data e hora
+      
+      // --- MUDANÇA 3: Enviar a data e hora combinadas ---
+      request.fields['data_evento'] = finalDateTime.toIso8601String(); // Formato 'AAAA-MM-DDTHH:MM:SS'
+      // ----------------------------------------------------
+      
       request.fields['inscricao'] = _requerInscricao.toString();
       request.fields['max_participantes'] = _maxParticipantesController.text.isEmpty 
                                           ? '0' 
                                           : _maxParticipantesController.text;
-      // --- NOVO CAMPO para o 'case PUT' ---
-      // Envia a flag para o PHP saber se deve apagar a imagem
-      request.fields['remover_imagem'] = _removerImagem.toString(); // 'true' ou 'false'
+      request.fields['remover_imagem'] = _removerImagem.toString();
 
-      // Adiciona a *nova* imagem (se uma nova foi selecionada)
+      // ... (O resto da sua lógica de imagem está correta) ...
       if (_selectedImage != null) {
         if (kIsWeb) {
           var imageBytes = await _selectedImage!.readAsBytes();
@@ -192,7 +229,7 @@ Future<void> _pickImage() async {
       }
     } catch (e) {
       print('Erro ao atualizar evento: $e');
-      _showFeedbackSnackbar('Erro de conexão. Verifique o XAMPP e a URL.', isError: true);
+      _showFeedbackSnackbar('Erro de conexão. Verifique o Render.', isError: true);
     } finally {
       setState(() { _isUpdating = false; });
     }
@@ -347,6 +384,32 @@ Future<void> _pickImage() async {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    // --- NOVO SELETOR DE HORÁRIO ---
+                    InkWell(
+                      onTap: () => _pickTime(context), // Chama a nova função
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _selectedTime == null
+                                  ? 'Selecione um horário'
+                                  : _selectedTime!.format(context), // Formata ex: "19:00"
+                              style: TextStyle(color: _selectedTime == null ? AppColors.secondaryText : Colors.white, fontSize: 16),
+                            ),
+                            const Icon(Icons.access_time, color: AppColors.secondaryText),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // ---------------------------
                     const SizedBox(height: 24),
 
                     // --- Switch "Requer Inscrição" ---

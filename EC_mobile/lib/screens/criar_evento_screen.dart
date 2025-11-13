@@ -9,6 +9,7 @@ import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:intl/intl.dart'; // Para formatar a data
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart'; // <-- ADICIONADO: Para o InputFormatter de números
+import 'package:image_cropper/image_cropper.dart';
 
 class CriarEventoScreen extends StatefulWidget {
   const CriarEventoScreen({super.key});
@@ -35,17 +36,52 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   
   bool _isLoading = false;
 
-  // --- Função para abrir a Galeria/Câmera ---
-  Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+  // --- Função para abrir a Galeria/Câmera E CORTAR ---
+Future<void> _pickImage() async {
+  final ImagePicker picker = ImagePicker();
+  // 1. Pega a imagem da galeria (como antes)
+  final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
-    }
+  // Se o usuário cancelou a seleção, não faz nada
+  if (image == null) return;
+
+  // --- 2. CHAMA A TELA DE RECORTE ---
+  final CroppedFile? croppedImage = await ImageCropper().cropImage(
+    sourcePath: image.path,
+
+    // Define a proporção (ex: 16:9 para um banner)
+    // Se quiser um quadrado, use: CropAspectRatio(ratioX: 1, ratioY: 1)
+    aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+
+    // --- Deixa o cropper com a sua identidade visual ---
+    uiSettings: [
+      AndroidUiSettings(
+        toolbarTitle: 'Recortar Imagem',
+        toolbarColor: AppColors.surface, // Sua cor
+        toolbarWidgetColor: Colors.white, // Cor do texto e ícones
+        initAspectRatio: CropAspectRatioPreset.ratio16x9, // Começa em 16:9
+        lockAspectRatio: true, // Força o usuário a usar 16:9
+        backgroundColor: AppColors.background,
+        activeControlsWidgetColor: AppColors.accent, // Controles em vermelho
+      ),
+      IOSUiSettings(
+        title: 'Recortar Imagem',
+        aspectRatioLockEnabled: true,
+        doneButtonTitle: 'Concluir',
+        cancelButtonTitle: 'Cancelar',
+      ),
+    ],
+  );
+  // --- FIM DA TELA DE RECORTE ---
+
+  // 3. Salva a imagem CORTADA
+  if (croppedImage != null) {
+    setState(() {
+      // O _selectedImage agora é o ARQUIVO CORTADO
+      _selectedImage = XFile(croppedImage.path);
+    });
   }
+}
 
   // --- Função para mostrar o DatePicker ---
   Future<void> _pickDate(BuildContext context) async {

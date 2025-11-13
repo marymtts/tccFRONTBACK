@@ -1,4 +1,5 @@
-import 'package:ec_mobile/widgets/custom_app_bar.dart'; // Novo import
+// lib/screens/proximos_eventos_screen.dart
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -17,21 +18,36 @@ class ProximosEventosScreen extends StatefulWidget {
 }
 
 class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
-  List<dynamic> _upcomingEvents = [];
+  // --- 1. MUDANÇA: URL do Servidor (use seu IP) ---
+  final String _serverUrl = 'https://tccfrontback.onrender.com'; 
+
+  // --- 2. NOVAS VARIÁVEIS DE ESTADO PARA A BUSCA ---
+  final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _allEvents = []; // Guarda TODOS os eventos vindos da API
+  List<dynamic> _filteredEvents = []; // Guarda os eventos que batem com a busca
+  // ------------------------------------------------
+
   bool _isLoading = true;
   String _errorMessage = '';
-
-  // --- MUDANÇA: Defina a URL do seu servidor aqui ---
-  // (Lembre-se: 10.0.2.2 para emulador, 192.168... para celular físico)
-  final String _serverUrl = 'https://tccfrontback.onrender.com'; 
-  // --------------------------------------------------
 
   @override
   void initState() {
     super.initState();
-    _fetchUpcomingEvents();
+    _fetchUpcomingEvents(); // Isso continua igual
+
+    // --- 3. ADICIONA O "OUVINTE" DA BUSCA ---
+    _searchController.addListener(_filterEvents);
+    // -----------------------------------------
   }
 
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterEvents); // Limpa o ouvinte
+    _searchController.dispose(); // Limpa o controller
+    super.dispose();
+  }
+
+  // --- 4. ATUALIZA A FUNÇÃO DE BUSCAR EVENTOS ---
   Future<void> _fetchUpcomingEvents() async {
     final url = Uri.parse('$_serverUrl/api/get_proximos_eventos.php');
 
@@ -40,8 +56,11 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          _upcomingEvents = data;
+          // --- POPULA AS NOVAS LISTAS ---
+          _allEvents = data;
+          _filteredEvents = data; // No início, a lista filtrada é a lista completa
           _isLoading = false;
+          // -----------------------------
         });
       } else {
         setState(() {
@@ -57,28 +76,42 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
       });
     }
   }
+  // --- FIM DA MUDANÇA 4 ---
+
+  // --- 5. ADICIONA A FUNÇÃO DE FILTRAGEM ---
+  void _filterEvents() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredEvents = _allEvents.where((event) {
+        // Pega o título do evento
+        final titleLower = (event['titulo'] as String).toLowerCase();
+        // Verifica se o título contém o texto da busca
+        return titleLower.contains(query);
+      }).toList();
+    });
+  }
+  // --- FIM DA MUDANÇA 5 ---
+
 
   String _formatApiDate(String apiDate) {
     try {
       final DateTime parsedDate = DateTime.parse(apiDate);
-      // Mudei o formato para ficar mais limpo no card
       return DateFormat('dd MMM yyyy', 'pt_BR').format(parsedDate).toUpperCase();
     } catch (e) {
       return apiDate;
     }
   }
 
-  // --- NOVA FUNÇÃO: Placeholder (AGORA USANDO A IMAGEM PADRÃO) ---
-Widget _buildImagePlaceholder() {
-  return Image.asset(
-    'assets/images/ec-eventos.png', // <-- O caminho para sua imagem padrão
-    height: 180,
-    width: double.infinity,
-    fit: BoxFit.cover, // Garante que a imagem cubra o espaço do card
-  );
-}
-  // -------------------------------------------------------------
+  Widget _buildImagePlaceholder() {
+    return Image.asset(
+      'assets/images/ec-eventos.png', // <-- Sua imagem padrão
+      height: 180,
+      width: double.infinity,
+      fit: BoxFit.cover,
+    );
+  }
 
+  // --- 6. ATUALIZA O MÉTODO BUILD ---
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context, listen: false).user;
@@ -90,165 +123,199 @@ Widget _buildImagePlaceholder() {
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-              ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red)))
-              : _upcomingEvents.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Nenhum evento futuro encontrado.',
-                        style: TextStyle(color: AppColors.secondaryText, fontSize: 16),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16.0),
-                      itemCount: _upcomingEvents.length,
-                      // --- MUDANÇA COMPLETA NO ITEMBUILDER ---
-                      itemBuilder: (context, index) {
-                        final event = _upcomingEvents[index];
-                        final int? eventId = event['id'];
-                        final String? imageUrl = event['imagem_url'];
-                        final String? fullImageUrl = imageUrl != null ? '$_serverUrl$imageUrl' : null;
-
-                        // Este Card substitui o ExpansionTile
-                        return Card(
-                          clipBehavior: Clip.antiAlias, // Corta a imagem para ter borda arredondada
-                          color: AppColors.surface,
-                          margin: const EdgeInsets.only(bottom: 20.0), // Espaçamento maior
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              
-                              // --- 1. A IMAGEM ---
-                              (fullImageUrl != null)
-                                ? Image.network(
-                                    fullImageUrl,
-                                    height: 180,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    // Placeholder enquanto carrega
-                                    loadingBuilder: (context, child, progress) {
-                                      return progress == null
-                                          ? child
-                                          : Container(
-                                              height: 180,
-                                              child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
-                                            );
-                                    },
-                                    // O que mostrar se a imagem falhar (link quebrado)
-                                    errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-                                  )
-                                : _buildImagePlaceholder(), // Placeholder se a imagem for nula
-
-                              // --- 2. O CONTEÚDO DE TEXTO ---
-                              Padding(
+      // O body agora é uma Column para ter a busca + a lista
+      body: Column(
+        children: [
+          
+          // --- A BARRA DE BUSCA ---
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: AppColors.primaryText),
+              decoration: InputDecoration(
+                hintText: 'Buscar pelo nome do evento...',
+                hintStyle: TextStyle(color: AppColors.secondaryText),
+                prefixIcon: Icon(Icons.search, color: AppColors.secondaryText),
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+              ),
+            ),
+          ),
+          
+          // --- A LISTA DE EVENTOS ---
+          Expanded( // Faz a lista ocupar o resto da tela
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage.isNotEmpty
+                    ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red)))
+                    : _allEvents.isEmpty // Verifica se a lista original está vazia
+                        ? const Center(
+                            child: Text(
+                              'Nenhum evento futuro encontrado.',
+                              style: TextStyle(color: AppColors.secondaryText, fontSize: 16),
+                            ),
+                          )
+                        // Verifica se a lista FILTRADA está vazia
+                        : _filteredEvents.isEmpty 
+                            ? Center(
+                                child: Text(
+                                  'Nenhum evento encontrado com "${_searchController.text}".',
+                                  style: TextStyle(color: AppColors.secondaryText, fontSize: 16),
+                                ),
+                              )
+                            // Se tudo certo, mostra a lista
+                            : ListView.builder(
                                 padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Data (com sua cor de destaque)
-                                    Text(
-                                      _formatApiDate(event['data_evento'] ?? ''),
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.accent), // Usei seu ACCENT
+                                itemCount: _filteredEvents.length, // <-- MUDOU
+                                itemBuilder: (context, index) {
+                                  final event = _filteredEvents[index]; // <-- MUDOU
+                                  final int? eventId = event['id'];
+                                  final String? imageUrl = event['imagem_url'];
+                                  final String? fullImageUrl = imageUrl != null ? '$_serverUrl$imageUrl' : null;
+
+                                  // O Card (seu código de Card continua igual)
+                                  return Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    color: AppColors.surface,
+                                    margin: const EdgeInsets.only(bottom: 20.0),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    const SizedBox(height: 10),
-                                    // Título
-                                    Text(
-                                      event['titulo'] ?? 'Evento sem título',
-                                      style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primaryText),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    // Descrição (limitada a 3 linhas)
-                                    Text(
-                                      event['descricao'] ?? 'Descrição indisponível.',
-                                      maxLines: 3,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.secondaryText,
-                                          height: 1.5),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              
-                              // --- 3. OS BOTÕES ---
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                child: Column( // Usei Column para os botões ficarem um sobre o outro
-                                  children: [
-                                    // Botão "Editar" (Só para Admins)
-                                    if (isAdmin)
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: OutlinedButton(
-                                          onPressed: eventId == null ? null : () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => EditarEventoScreen(eventId: eventId),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        
+                                        // A Imagem
+                                        (fullImageUrl != null)
+                                          ? Image.network(
+                                              fullImageUrl,
+                                              height: 180,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child, progress) {
+                                                return progress == null
+                                                    ? child
+                                                    : Container(
+                                                        height: 180,
+                                                        child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                                                      );
+                                              },
+                                              errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+                                            )
+                                          : _buildImagePlaceholder(),
+
+                                        // O Conteúdo de Texto
+                                        Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _formatApiDate(event['data_evento'] ?? ''),
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.accent),
                                               ),
-                                            );
-                                          },
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: AppColors.secondaryText,
-                                            side: BorderSide(color: AppColors.secondaryText.withOpacity(0.5)),
-                                            padding: const EdgeInsets.symmetric(vertical: 14),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: const Text('Editar Evento'),
-                                        ),
-                                      ),
-                                    
-                                    if (isAdmin) const SizedBox(height: 8), // Espaçador
-                                    
-                                    // Botão "Saiba mais" (Para Todos)
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: eventId == null ? null : () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => InscricaoEventoScreen(eventId: eventId),
-                                            ),
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.accent,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
+                                              const SizedBox(height: 10),
+                                              Text(
+                                                event['titulo'] ?? 'Evento sem título',
+                                                style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primaryText),
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Text(
+                                                event['descricao'] ?? 'Descrição indisponível.',
+                                                maxLines: 3,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontSize: 14,
+                                                    color: AppColors.secondaryText,
+                                                    height: 1.5),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        child: const Text(
-                                          'Saiba mais',
-                                          style: TextStyle(fontSize: 16),
+                                        
+                                        // Os Botões
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                          child: Column(
+                                            children: [
+                                              if (isAdmin)
+                                                SizedBox(
+                                                  width: double.infinity,
+                                                  child: OutlinedButton(
+                                                    onPressed: eventId == null ? null : () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) => EditarEventoScreen(eventId: eventId),
+                                                        ),
+                                                      );
+                                                    },
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: AppColors.secondaryText,
+                                                      side: BorderSide(color: AppColors.secondaryText.withOpacity(0.5)),
+                                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                    ),
+                                                    child: const Text('Editar Evento'),
+                                                  ),
+                                                ),
+                                              
+                                              if (isAdmin) const SizedBox(height: 8), 
+                                              
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton(
+                                                  onPressed: eventId == null ? null : () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => InscricaoEventoScreen(eventId: eventId),
+                                                      ),
+                                                    );
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: AppColors.accent,
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    'Saiba mais',
+                                                    style: TextStyle(fontSize: 16),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+          ),
+        ],
+      ),
     );
   }
 }

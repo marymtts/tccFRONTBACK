@@ -67,7 +67,7 @@ class HomeScreen extends StatefulWidget {
 // --- AQUI COMEÇA A CLASSE DE ESTADO (onde tudo acontece) ---
 class _HomeScreenState extends State<HomeScreen> { 
 
-  // --- 1. A FUNÇÃO DO MENU DE BAIXO (NO LUGAR CERTO) ---
+  // --- 1. A FUNÇÃO DO MENU DE BAIXO (sem mudanças) ---
   void _showBottomMenu(BuildContext context, String currentPage) {
     showModalBottomSheet(
       context: context,
@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               color: AppColors.surface, // Cor de fundo do seu menu
               // Aqui chamamos o CONTEÚDO que refatoramos
-              child: AppDrawer(currentPage: currentPage), 
+              child: AppDrawerContent(currentPage: currentPage), 
             ),
           ),
         );
@@ -94,97 +94,140 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- 2. SUAS VARIÁVEIS (NO LUGAR CERTO) ---
+  // --- 2. SUAS VARIÁVEIS (sem mudanças) ---
   List<dynamic> _featuredEvents = []; 
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // --- 3. SEU MÉTODO BUILD (PRINCIPAL) ---
+  // --- 3. SEU MÉTODO BUILD (O CÓDIGO DO EFEITO) ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      
-      // --- 4. APPBAR CORRIGIDO (para o menu de baixo) ---
-      appBar: AppBar(
-        backgroundColor: AppColors.surface, // Sua cor
-        elevation: 0,
-        title: const Text('Início', style: TextStyle(fontWeight: FontWeight.bold)),
-        // O ícone do menu
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu, color: AppColors.primaryText, size: 28),
-            onPressed: () {
-              // --- 5. CONECTADO NA FUNÇÃO CERTA ---
-              _showBottomMenu(context, 'Início'); 
-            },
-          ),
-        ),
-      ),
-      
-      // --- 6. LINHA DO DRAWER REMOVIDA ---
-      // drawer: const AppDrawer(currentPage: 'Início'), // <-- Linha apagada
+    
+    // Calcula a altura da tela
+    final double screenHeight = MediaQuery.of(context).size.height;
+    // O header (imagem) terá 80% da altura da tela
+    final double expandedHeaderHeight = screenHeight * 0.8; 
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Scaffold(
+      // NÃO HÁ APPBAR AQUI
+      // NÃO HÁ DRAWER AQUI
+      
+      body: CustomScrollView(
+        slivers: <Widget>[
+          
+          // --- 1. O HEADER (A IMAGEM E O TEXTO "Fique por dentro...") ---
+          SliverAppBar(
+            backgroundColor: AppColors.background, // Cor de fundo
+            expandedHeight: expandedHeaderHeight, // Altura inicial GRANDE
+            pinned: true, // Fica "preso" no topo quando você rola
+            floating: false,
             
-            // --- 7. IMAGEM MOVIDA PARA CÁ (PONTA-A-PONTA) ---
-            Image.asset(
-              'assets/images/echolder.jpg', // O caminho da sua imagem
-              width: double.infinity,      // <-- FORÇA A LARGURA TOTAL
-              height: 200,                 // <-- Mudei de 300 para 200 (fica mais proporcional)
-              fit: BoxFit.cover,           // <-- Faz a imagem cobrir o espaço
+            // O Título (Início) que aparece SÓ QUANDO ENCOLHE
+            title: const Text('Início', style: TextStyle(fontWeight: FontWeight.bold)),
+            
+            // O Botão de Menu
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: Icon(Icons.menu, color: AppColors.primaryText, size: 28),
+                onPressed: () {
+                  _showBottomMenu(context, 'Início'); 
+                },
+              ),
             ),
-            // --------------------------------------------------
             
-            // Seção "Hero" e "Navegação" (fundo principal)
-            Padding(
-              // O padding agora só afeta o texto e os botões
-              padding: const EdgeInsets.symmetric(horizontal: 20.0), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // A "Área Flexível" (o que encolhe)
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.parallax, // Efeito de paralaxe
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  const SizedBox(height: 40), // Espaço entre a imagem e o texto
-                  _buildHeroSection(), // Agora esta função só tem texto e botão
-                  const SizedBox(height: 80),
-                  _buildNavigationSection(), // <-- A NOVA SEÇÃO DE BOTÕES
+                  
+                  // --- A IMAGEM DE LOGO GRANDE ---
+                  Image.asset(
+                    'assets/images/cotil-logo2.png', // A imagem que você quer
+                    fit: BoxFit.cover, 
+                  ),
+                  
+                  // --- O GRADIENTE (para o "fade-out") ---
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.4), // Escuro no topo
+                          Colors.transparent,           // Transparente no meio
+                          AppColors.background,         // Fundo sólido embaixo
+                        ],
+                        stops: const [0.0, 0.5, 1.0], // O fade acontece na metade de baixo
+                      ),
+                    ),
+                  ),
+
+                  // --- O TEXTO "Fique por dentro..." (DENTRO da imagem) ---
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 30, left: 20, right: 20),
+                      child: _buildHeroSection(), // Sua função de texto
+                    ),
+                  ),
                 ],
               ),
             ),
-            
-            // Seção "Quem Somos" e Rodapé (fundo secundário)
-            Container(
-              width: double.infinity, 
-              color: AppColors.sectionBackground, // Use a cor de contraste que você gostou
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 80),
-                    _buildAboutUsSection(), // Continua igual
-                    const SizedBox(height: 80),
-                    _buildCtaSection(), // Continua igual
-                    const SizedBox(height: 80),
-                    _buildFooter(), // Continua igual
-                    const SizedBox(height: 40),
-                  ],
+          ),
+
+          // --- 2. O RESTO DO CONTEÚDO (Os cards) ---
+          SliverList(
+            delegate: SliverChildListDelegate(
+              [
+                // O conteúdo agora COMEÇA com os cards
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0), 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 40), 
+                      _buildNavigationSection(), // Seus botões
+                    ],
+                  ),
                 ),
-              ),
+                
+                // Seção "Quem Somos" e Rodapé
+                Container(
+                  width: double.infinity, 
+                  color: AppColors.sectionBackground,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 80),
+                        _buildAboutUsSection(), 
+                        const SizedBox(height: 80),
+                        _buildCtaSection(), 
+                        const SizedBox(height: 80),
+                        _buildFooter(), 
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
   // --- FIM DO MÉTODO BUILD ---
 
-  // --- 8. _buildHeroSection (CORRIGIDA - SEM A IMAGEM) ---
+  // --- _buildHeroSection (SÓ O TEXTO E O BOTÃO "Ver Eventos") ---
   Widget _buildHeroSection() {
     return Column(
+      mainAxisSize: MainAxisSize.min, // Ocupa o mínimo de espaço
       children: [
-        // --- Imagem removida daqui ---
+        // A IMAGEM FOI MOVIDA PARA O SLIVERAPPBAR
 
         RichText(
           textAlign: TextAlign.center,
@@ -225,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
             );
           },
-          // Corrigi o texto de volta
           child: const Text('Ver Próximos Eventos', style: TextStyle(fontSize: 16)), 
           style: TextButton.styleFrom(
             backgroundColor: AppColors.accent,
@@ -387,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.check_circle, // Ícone sólido
           title: 'Meus Eventos',
           subtitle: 'Eventos em que você está inscrito',
-          iconBackgroundColor: const Color.fromRGBO(240, 28, 28, 0.863), // <-- CORRIGI A COR
+          iconBackgroundColor:const Color.fromRGBO(240, 28, 28, 0.863), 
           onTap: () {
             final user = Provider.of<UserProvider>(context, listen: false).user;
             if (user != null) {
@@ -411,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color iconBackgroundColor, // <-- 1. RECEBE A COR
+    required Color iconBackgroundColor, 
     required VoidCallback onTap,
   }) {
     return Card(
@@ -422,32 +464,30 @@ class _HomeScreenState extends State<HomeScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        splashColor: iconBackgroundColor.withOpacity(0.2), // Efeito de clique
+        splashColor: iconBackgroundColor.withOpacity(0.2), 
         child: Padding(
-          padding: const EdgeInsets.all(24.0), // Padding "grosso"
+          padding: const EdgeInsets.all(24.0), 
           child: Row(
             children: [
-              // --- 2. O ÍCONE QUADRADO ---
               Container(
-                width: 60,  // Tamanho grande
-                height: 60, // Tamanho grande
+                width: 60,  
+                height: 60, 
                 decoration: BoxDecoration(
-                  color: iconBackgroundColor, // <-- 3. USA A COR SÓLIDA
+                  color: iconBackgroundColor, 
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: iconBackgroundColor.withOpacity(0.4), // Sombra da mesma cor
-                      blurRadius: 15.0,   // "Esfumaçado" do bloom
-                      spreadRadius: 3.0,    // Espalha o brilho
-                      offset: const Offset(0, 6), // Deslocamento para baixo
+                      color: iconBackgroundColor.withOpacity(0.4), 
+                      blurRadius: 15.0,   
+                      spreadRadius: 3.0,    
+                      offset: const Offset(0, 6), 
                     ),
                   ], 
                 ),
-                child: Icon(icon, color: Colors.white, size: 30), // Ícone maior
+                child: Icon(icon, color: Colors.white, size: 30), 
               ),
               const SizedBox(width: 20),
               
-              // Textos (continuam iguais)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

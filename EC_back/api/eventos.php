@@ -5,7 +5,7 @@ use Firebase\JWT\Key;
 
 // --- CABEÇALHOS OBRIGATÓRIOS ---
 // Permite que qualquer origem (seu app Flutter) acesse
-header("Access-Control-Allow-Origin: 'https://tccfrontback.onrender.com'");
+header("Access-Control-Allow-Origin: *");
 // Define o tipo de conteúdo que a API VAI RETORNAR
 header("Content-Type: application/json; charset=UTF-8");
 // Define QUAIS MÉTODOS o navegador pode usar
@@ -24,48 +24,6 @@ if ($method == "OPTIONS") {
 // --- FIM DA CORREÇÃO ---  
 // Inclui a conexão com o banco
 include_once '../config/database.php';
-
-$data = json_decode(file_get_contents("php://input"));
-
-// Verifica se o e-mail foi enviado
-if (empty($data->email)) {
-    http_response_code(400); // Bad Request
-    echo json_encode(["success" => false, "message" => "E-mail é obrigatório."]);
-    exit(); // Para a execução
-}
-    $email = $data->email;
-$database = new Database();
-$db = $database->getConnection();
-
-try {
-    // AQUI VOCÊ FAZ SUA CONSULTA SQL REAL
-    // ATENÇÃO: Use Prepared Statements para evitar SQL Injection!
-    $query = "SELECT id, nome, tipo FROM usuarios WHERE email = :email LIMIT 1";
-    
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':email', $email);
-    $stmt->execute();
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user) {
-        // Usuário encontrado!
-        // (Aqui você também geraria um token JWT, mas vamos simplificar por agora)
-        http_response_code(200); // OK
-        echo json_encode([
-            "success" => true,
-            "user" => $user, // ex: { id: 1, nome: "Pedricas", tipo: "professor" }
-            "token" => "seu.token.jwt.aqui" 
-        ]);
-    } else {
-        // Usuário não encontrado
-        http_response_code(404); // Not Found
-        echo json_encode(["success" => false, "message" => "Usuário não encontrado."]);
-    }
-
-} catch (PDOException $e) {
-    http_response_code(500); // Internal Server Error
-    echo json_encode(["success" => false, "message" => "Erro no servidor: " . $e->getMessage()]);
-}
 
 // Instancia o objeto de banco de dados
 $database = new Database();
@@ -153,8 +111,7 @@ switch ($method) {
             $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; 
             $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
 
-            // LINHA DE DEBUG:
-            file_put_contents('debug_edit.txt', 'Recebi a data: ' . $data_evento);
+            
 
             // LÓGICA DA IMAGEM (com opção de remover)
             $imagem_url_para_db = null; 

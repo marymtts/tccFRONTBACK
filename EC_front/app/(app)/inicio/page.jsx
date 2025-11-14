@@ -32,7 +32,7 @@ export default function HomePage() {
           O seu guia completo para os eventos, palestras, workshops e atividades que enriquecem sua jornada no colégio.
         </p>
         <button
-          onClick={() => navigate('/calendario')}
+          onClick={() => navigate('/proximos-eventos')}
           className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-4 px-8 rounded-lg text-lg transition duration-300 shadow-xl"
         >
           Ver Próximos Eventos
@@ -46,7 +46,7 @@ export default function HomePage() {
           
           {/* Card: Próximos Eventos */}
           <button
-            onClick={() => navigate('/calendario')}
+            onClick={() => navigate('/proximos-eventos')}
             className="bg-gray-800 rounded-lg shadow-lg p-6 flex items-center text-left hover:bg-gray-700 transition duration-300 group border border-gray-700 hover:border-orange-500"
           >
             <div className="bg-gradient-to-br from-orange-500 to-yellow-500 p-4 rounded-lg mr-6 shadow-lg">
@@ -107,19 +107,6 @@ export default function HomePage() {
             Equipe Eventos Cotil
           </h3>
         </div>
-      </div>
-
-      {/* Seção CTA */}
-      <div className="bg-gray-800 rounded-lg shadow-lg p-8 md:p-12 mb-12 text-center">
-        <h2 className="text-3xl font-bold text-white mb-4">
-          Tem um evento para divulgar?
-        </h2>
-        <p className="text-gray-300 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-          É organizador de algum centro acadêmico, atlética, ou está planejando algo incrível? Manda pra gente! Teremos o prazer de ajudar na divulgação.
-        </p>
-        <button className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 shadow-lg">
-          Fale Conosco
-        </button>
       </div>
 
       {/* Rodapé */}

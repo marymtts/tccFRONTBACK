@@ -49,7 +49,10 @@ export default function CalendarioPage() {
         // Create a map of dates to events for calendar markers
         const map = {};
         data.forEach(event => {
-          const dateKey = new Date(event.data_evento).toDateString();
+          // Parse date without timezone conversion
+          const parts = event.data_evento.split(/[- :]/);
+          const date = new Date(parts[0], parts[1] - 1, parts[2]);
+          const dateKey = date.toDateString();
           if (!map[dateKey]) {
             map[dateKey] = [];
           }
@@ -68,7 +71,8 @@ export default function CalendarioPage() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    const parts = dateString.split(/[- :]/);
+    const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0);
     return date.toLocaleDateString('pt-BR', { 
       day: '2-digit', 
       month: 'short', 

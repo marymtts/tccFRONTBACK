@@ -43,7 +43,8 @@ export default function ControlePage() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    const parts = dateString.split(/[- :]/);
+    const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',
@@ -54,8 +55,7 @@ export default function ControlePage() {
   };
 
   const handleViewSubscribers = (eventId) => {
-    // This would navigate to a page showing all subscribers
-    alert(`Visualizar inscritos do evento ${eventId}.\n\nEsta funcionalidade mostraria todos os alunos inscritos neste evento.`);
+    router.push(`/admin/ver-inscritos/${eventId}`);
   };
 
   const handleEditEvent = (eventId) => {

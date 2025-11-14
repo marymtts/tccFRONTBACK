@@ -137,7 +137,9 @@ export default function EventoPage({ params }) {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    // Parse the date string directly without timezone conversion
+    const parts = dateString.split(/[- :]/);
+    const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
@@ -146,7 +148,9 @@ export default function EventoPage({ params }) {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    // Parse the date string directly without timezone conversion
+    const parts = dateString.split(/[- :]/);
+    const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0);
     return date.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit'
@@ -302,20 +306,26 @@ export default function EventoPage({ params }) {
         {hasInscricao && user?.role === 'aluno' && (
           <div className="flex flex-col sm:flex-row gap-4">
             {isRegistered ? (
-              <button
-                onClick={handleCancellation}
-                disabled={isCanceling}
-                className="flex-1 border-2 border-red-500 hover:bg-red-500 text-red-500 hover:text-white font-bold py-4 px-6 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
-              >
-                {isCanceling ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <>
-                    <XCircle size={20} className="mr-2" />
-                    Cancelar Inscrição
-                  </>
-                )}
-              </button>
+              <div className="flex-1 flex flex-col gap-3">
+                <div className="bg-green-900 border-2 border-green-500 text-green-300 font-bold py-4 px-6 rounded-lg flex items-center justify-center">
+                  <CheckCircle size={20} className="mr-2" />
+                  Você já está inscrito
+                </div>
+                <button
+                  onClick={handleCancellation}
+                  disabled={isCanceling}
+                  className="border-2 border-red-500 hover:bg-red-500 text-red-500 hover:text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
+                >
+                  {isCanceling ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : (
+                    <>
+                      <XCircle size={20} className="mr-2" />
+                      Cancelar Inscrição
+                    </>
+                  )}
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleRegistration}

@@ -50,7 +50,8 @@ export default function MeusEventosPage() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    const parts = dateString.split(/[- :]/);
+    const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',

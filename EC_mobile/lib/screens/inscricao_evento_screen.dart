@@ -169,7 +169,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
           (fullImageUrl != null)
               ? Image.network(
                   fullImageUrl,
-                  height: 280, // <-- AUMENTAMOS A ALTURA
+                  height: 300, // <-- AUMENTAMOS A ALTURA
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
@@ -384,12 +384,7 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
     } catch (e) {
       return apiDate;
     }
-    try {
-    final DateTime parsedDate = DateTime.parse(apiDate);
-    return DateFormat('HH:mm', 'pt_BR').format(parsedDate); // Formato "19:00"
-  } catch (e) {
-    return "--:--";
-  }
+    
   }
 
   String _formatApiTime(String? apiTime) { // <-- Mudei para String? (pode ser nulo)

@@ -158,7 +158,9 @@ Future<void> _pickImage() async {
       request.fields['descricao'] = _descricaoController.text;
       
       // --- MUDANÇA 3: Enviar a data e hora combinadas ---
-      request.fields['data_evento'] = finalDateTime.toIso8601String(); // Formato 'AAAA-MM-DD HH:MM:SS'
+      request.fields['data_evento'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+      final String horaFormatada = "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00";
+      request.fields['hora_evento'] = horaFormatada;
       // ----------------------------------------------------
       
       // (O resto do seu código está perfeito)

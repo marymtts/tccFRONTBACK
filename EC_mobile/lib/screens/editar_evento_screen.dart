@@ -181,13 +181,7 @@ Future<void> _pickImage() async {
 
     try {
       // --- MUDANÇA 2: Combinar data e hora ---
-      final DateTime finalDateTime = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _selectedTime!.hour, // <-- Pega a hora
-        _selectedTime!.minute, // <-- Pega o minuto
-      );
+      
       // ---------------------------------------
 
       var request = http.MultipartRequest('POST', url); // (Sim, 'POST')
@@ -196,8 +190,10 @@ Future<void> _pickImage() async {
       request.fields['titulo'] = _tituloController.text;
       request.fields['descricao'] = _descricaoController.text;
       
-      // --- MUDANÇA 3: Enviar a data e hora combinadas ---
-      request.fields['data_evento'] = finalDateTime.toIso8601String(); // Formato 'AAAA-MM-DDTHH:MM:SS'
+      // --- MUDANÇA 3: Enviar a data e hora  ---
+      request.fields['data_evento'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+      final String horaFormatada = "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00";
+      request.fields['hora_evento'] = horaFormatada;
       // ----------------------------------------------------
       
       request.fields['inscricao'] = _requerInscricao.toString();

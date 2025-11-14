@@ -192,9 +192,10 @@ export default function EventoPage({ params }) {
   const maxVagas = parseInt(event.max_participantes) || 0;
   const inscritos = parseInt(event.inscritos_count) || 0;
   const progressPercentage = maxVagas > 0 ? (inscritos / maxVagas) * 100 : 0;
+  const isLotado = (maxVagas > 0) && (inscritos >= maxVagas);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto pb-32">
       {/* Feedback Message */}
       {feedbackMessage && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
@@ -302,48 +303,23 @@ export default function EventoPage({ params }) {
           </p>
         </div>
 
-        {/* Action Buttons - only show for students if inscricao is enabled */}
-        {hasInscricao && user?.role === 'aluno' && (
-          <div className="flex flex-col sm:flex-row gap-4">
-            {isRegistered ? (
-              <div className="flex-1 flex flex-col gap-3">
-                <div className="bg-green-900 border-2 border-green-500 text-green-300 font-bold py-4 px-6 rounded-lg flex items-center justify-center">
-                  <CheckCircle size={20} className="mr-2" />
-                  Você já está inscrito
-                </div>
-                <button
-                  onClick={handleCancellation}
-                  disabled={isCanceling}
-                  className="border-2 border-red-500 hover:bg-red-500 text-red-500 hover:text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
-                >
-                  {isCanceling ? (
-                    <Loader2 className="animate-spin" size={20} />
-                  ) : (
-                    <>
-                      <XCircle size={20} className="mr-2" />
-                      Cancelar Inscrição
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleRegistration}
-                disabled={isRegistering || inscritos >= maxVagas}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg"
-              >
-                {isRegistering ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : inscritos >= maxVagas ? (
-                  'Vagas Esgotadas'
-                ) : (
-                  <>
-                    <CheckCircle size={20} className="mr-2" />
-                    Inscrever-se
-                  </>
-                )}
-              </button>
-            )}
+        {/* Cancel Button - only show for registered students */}
+        {hasInscricao && user?.role === 'aluno' && isRegistered && (
+          <div className="mb-8">
+            <button
+              onClick={handleCancellation}
+              disabled={isCanceling}
+              className="w-full border-2 border-red-500 hover:bg-red-500 text-red-500 hover:text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
+            >
+              {isCanceling ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <XCircle size={20} className="mr-2" />
+                  Cancelar Inscrição
+                </>
+              )}
+            </button>
           </div>
         )}
 
@@ -356,6 +332,41 @@ export default function EventoPage({ params }) {
           </div>
         )}
       </div>
+
+      {/* Sticky Bottom Registration Button - matching mobile implementation */}
+      {hasInscricao && user?.role === 'aluno' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4 shadow-lg z-40">
+          <div className="max-w-6xl mx-auto">
+            {isRegistered ? (
+              <button
+                disabled
+                className="w-full bg-gray-700 text-gray-400 font-bold py-4 px-6 rounded-lg flex items-center justify-center cursor-not-allowed"
+              >
+                <CheckCircle size={20} className="mr-2" />
+                Inscrito
+              </button>
+            ) : (
+              <button
+                onClick={handleRegistration}
+                disabled={isRegistering || isLotado}
+                className={`w-full font-bold py-4 px-6 rounded-lg transition-all flex items-center justify-center shadow-lg ${
+                  isLotado 
+                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-gray-900 disabled:opacity-50'
+                }`}
+              >
+                {isRegistering ? (
+                  <Loader2 className="animate-spin text-gray-900" size={20} />
+                ) : isLotado ? (
+                  'Inscrições Esgotadas'
+                ) : (
+                  'Inscrever-se'
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

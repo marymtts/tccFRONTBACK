@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Calendar, 
   Clock, 
   Users, 
-  MapPin, 
   Loader2, 
   AlertCircle,
   CheckCircle,
@@ -19,6 +18,7 @@ const API_BASE_URL = 'https://tccfrontback.onrender.com';
 export default function EventoPage({ params }) {
   const router = useRouter();
   const { user } = useAuth();
+  const unwrappedParams = use(params);
   const [event, setEvent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,14 +28,14 @@ export default function EventoPage({ params }) {
   const [feedbackMessage, setFeedbackMessage] = useState(null);
 
   useEffect(() => {
-    if (params?.id) {
+    if (unwrappedParams?.id) {
       fetchEventDetails();
     }
-  }, [params?.id, user]);
+  }, [unwrappedParams?.id, user]);
 
   const fetchEventDetails = async () => {
     try {
-      const eventId = params.id;
+      const eventId = unwrappedParams.id;
       let url = `${API_BASE_URL}/api/eventos.php?id=${eventId}`;
       
       if (user) {
@@ -79,7 +79,7 @@ export default function EventoPage({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id_aluno: user.id.toString(),
-          id_evento: params.id.toString(),
+          id_evento: unwrappedParams.id.toString(),
         }),
       });
 
@@ -108,10 +108,10 @@ export default function EventoPage({ params }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          id_evento: params.id.toString(),
+          id_evento: unwrappedParams.id.toString(),
         }),
       });
 

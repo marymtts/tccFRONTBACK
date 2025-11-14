@@ -98,6 +98,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           />
           <NavItem 
             icon={<Calendar size={20} />} 
+            label="Próximos Eventos" 
+            page="/proximos-eventos" 
+            pathname={pathname} 
+            setIsOpen={setIsOpen} 
+          />
+          <NavItem 
+            icon={<Calendar size={20} />} 
             label="Calendário" 
             page="/calendario" 
             pathname={pathname} 

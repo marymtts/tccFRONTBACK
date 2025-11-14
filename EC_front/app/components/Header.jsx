@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Menu, User } from 'lucide-react';
-// Corrigido para usar um caminho relativo, o que resolve o erro de compilação do alias '@'.
 import { useAuth } from '../context/AuthContext';
 
 export default function Header({ onToggleSidebar }) {
@@ -17,9 +16,11 @@ export default function Header({ onToggleSidebar }) {
        
       {/* Informações do Usuário */}
       <div className="flex items-center">
-        <span className="text-gray-300 mr-3 hidden md:inline">Olá, {user?.name}</span>
-        <div className="w-10 h-10 rounded-full bg-yellow-600 flex items-center justify-center text-white font-bold">
-          <User size={20} />
+        <span className="text-gray-300 mr-3 hidden md:inline">
+          Olá, {user?.nome || user?.name || 'Usuário'}
+        </span>
+        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 flex items-center justify-center text-white font-bold">
+          {user?.nome ? user.nome[0].toUpperCase() : <User size={20} />}
         </div>
       </div>
     </header>

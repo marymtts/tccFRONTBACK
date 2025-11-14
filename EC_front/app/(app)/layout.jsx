@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import Sidebar from '../../components/Sidebar';
-import Header from '../../components/Header';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
 import { Loader2 } from 'lucide-react';
 
 // Este é o Layout do Dashboard, para usuários logados

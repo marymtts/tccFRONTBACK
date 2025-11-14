@@ -141,13 +141,6 @@ Future<void> _pickImage() async {
 
     try {
       // --- MUDANÇA 2: Combinar data e hora ---
-      final DateTime finalDateTime = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _selectedTime!.hour,
-        _selectedTime!.minute,
-      );
       // ---------------------------------------
 
       // 3. Cria a Requisição "Multipart"

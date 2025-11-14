@@ -14,7 +14,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-full mx-auto">
       {/* Seção Hero com imagem de fundo */}
       <div 
         className="bg-gray-800 rounded-lg shadow-xl p-8 md:p-16 text-center mb-12 relative overflow-hidden"

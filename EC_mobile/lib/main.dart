@@ -284,10 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: ElevatedButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProximosEventosScreen()),
-              );
+              
             },
             // Remove o background do ElevatedButton para que o gradiente do Container apareça
             style: ElevatedButton.styleFrom(
@@ -297,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(
-              'Ver Próximos Eventos',
+              'Seja bem-vindo!',
               style: GoogleFonts.poppins( // Garante que a fonte seja Poppins
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -326,24 +323,24 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(color: AppColors.secondaryText, height: 1.6),
         ),
         const SizedBox(height: 30),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 60),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+
+        // --- MUDANÇA AQUI ---
+        // Trocamos o Container com Text por um Card com a Imagem
+        Card(
+          clipBehavior: Clip.antiAlias, // Corta a imagem para a borda
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Center(
-            child: Text(
-              'Equipe Eventos Cotil',
-              style: TextStyle(
-                color: AppColors.accent,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          elevation: 5,
+          shadowColor: Colors.black.withOpacity(0.4),
+          child: Image.asset(
+            'assets/images/equipe-ec.jpg', // <-- O caminho da sua imagem
+            width: double.infinity,
+            height: 200, // <-- Ajuste esta altura como preferir
+            fit: BoxFit.cover, // Faz a imagem preencher o card
           ),
         ),
+        // --- FIM DA MUDANÇA ---
       ],
     );
   }

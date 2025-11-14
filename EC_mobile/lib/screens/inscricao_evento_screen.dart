@@ -215,9 +215,9 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
 
                 // --- NOVO BLOCO DE HORÁRIO ---
                 _buildInfoBlock(
-                  icon: Icons.access_time_outlined, // Ícone de relógio
+                  icon: Icons.access_time_outlined,
                   label: 'Horário',
-                  value: _formatApiTime(event['data_evento'] ?? ''), // ex: "19:00"
+                  value: _formatApiTime(event['hora_evento']), // <-- MUDE AQUI
                 ),
                 const SizedBox(height: 24),
 
@@ -392,12 +392,14 @@ class _InscricaoEventoScreenState extends State<InscricaoEventoScreen> {
   }
   }
 
-  String _formatApiTime(String apiDate) {
+  String _formatApiTime(String? apiTime) { // <-- Mudei para String? (pode ser nulo)
+    if (apiTime == null) return "--:--"; // Retorna se a hora for nula
     try {
-      final DateTime parsedDate = DateTime.parse(apiDate);
-      return DateFormat('HH:mm', 'pt_BR').format(parsedDate); // Formato "19:00"
+      // O banco envia "19:00:00". Precisamos de um DateTime "falso" para formatar.
+      final DateTime parsedTime = DateFormat('HH:mm:ss').parse(apiTime);
+      return DateFormat('HH:mm', 'pt_BR').format(parsedTime); // Formato "19:00"
     } catch (e) {
-      return "--:--";
+      return apiTime; // Retorna a string crua se falhar
     }
   }
 

@@ -108,6 +108,7 @@ switch ($method) {
             $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
             $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
             $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
+            $hora_evento = isset($_POST['hora_evento']) ? $_POST['hora_evento'] : null; // <-- NOVO
             $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null; 
             $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
 
@@ -140,13 +141,14 @@ switch ($method) {
             }
 
             // Verifica dados obrigatórios
-            if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
+            if (!empty($titulo) && !empty($data_evento)&& !empty($hora_evento) && isset($inscricao)) {
                 
                 // Monta a query UPDATE
                 $query = "UPDATE eventos SET 
                             titulo = :titulo, 
                             descricao = :descricao, 
-                            data_evento = :data_evento, 
+                            data_evento = :data_evento,
+                            hora_evento = :hora_evento,  
                             inscricao = :inscricao, 
                             max_participantes = :max_participantes";
                 
@@ -172,6 +174,7 @@ switch ($method) {
                 $stmt->bindParam(':titulo', $titulo_limpo);
                 $stmt->bindParam(':descricao', $descricao_limpa);
                 $stmt->bindParam(':data_evento', $data_evento_limpo);
+                $stmt->bindParam(':hora_evento', $hora_evento); // <-- NOVO
                 $stmt->bindParam(':inscricao', $inscricao_limpa);
                 $stmt->bindParam(':id', $id);
                 $stmt->bindParam(':max_participantes', $max_participantes_limpo);
@@ -203,6 +206,7 @@ switch ($method) {
             $titulo = isset($_POST['titulo']) ? $_POST['titulo'] : null;
             $descricao = isset($_POST['descricao']) ? $_POST['descricao'] : null;
             $data_evento = isset($_POST['data_evento']) ? $_POST['data_evento'] : null;
+            $hora_evento = isset($_POST['hora_evento']) ? $_POST['hora_evento'] : null;
             $inscricao = isset($_POST['inscricao']) ? $_POST['inscricao'] : null;
             $max_participantes = isset($_POST['max_participantes']) ? $_POST['max_participantes'] : null;
 
@@ -237,11 +241,11 @@ switch ($method) {
             }
 
             // Verifica dados obrigatórios
-            if (!empty($titulo) && !empty($data_evento) && isset($inscricao)) {
+            if (!empty($titulo) && !empty($data_evento) && !empty($hora_evento) && isset($inscricao)) {
                 
                 // Monta a query INSERT
-                $query = "INSERT INTO eventos (titulo, descricao, data_evento, inscricao, imagem_url, max_participantes) 
-                          VALUES (:titulo, :descricao, :data_evento, :inscricao, :imagem_url, :max_participantes)";
+                $query = "INSERT INTO eventos (titulo, descricao, data_evento, hora_evento, inscricao, imagem_url, max_participantes) 
+                          VALUES (:titulo, :descricao, :data_evento, :hora_evento, :inscricao, :imagem_url, :max_participantes)";
                 
                 $stmt = $db->prepare($query);
 
@@ -260,6 +264,7 @@ switch ($method) {
                 $stmt->bindParam(':titulo', $titulo_limpo);
                 $stmt->bindParam(':descricao', $descricao_limpa);
                 $stmt->bindParam(':data_evento', $data_evento_limpo);
+                $stmt->bindParam(':hora_evento', $hora_evento);
                 $stmt->bindParam(':inscricao', $inscricao_limpa);
                 $stmt->bindParam(':imagem_url', $imagem_url_para_db);
                 $stmt->bindParam(':max_participantes', $max_participantes_limpo);

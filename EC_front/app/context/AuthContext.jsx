@@ -1,84 +1,148 @@
 'use client';
 
-import React, { useState, createContext, useContext } from 'react';
-import { useRouter } from 'next/navigation';
-// Corrigido para usar um caminho relativo, o que resolve o erro de compilação do alias '@'.
+import React, { useState, createContext, useContext, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 const AuthContext = createContext(null);
 
 const API_BASE_URL = 'https://tccfrontback.onrender.com';
 
-export function AuthProvider({ children }) {
-  const [email, setEmail] = useState('');
-    const [senha, setSenha] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
-
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setError('');
-
-        try {
-            const response = await fetch('http://https://tccfrontback.onrender.com/EC_back/api/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, senha }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.jwt) {
-                // Login bem-sucedido
-                localStorage.setItem('authToken', data.jwt); // Guarda o token
-                navigate('/admin/dashboard'); // Redireciona para o dashboard
-            } else {
-                // Login falhou
-                setError(data.message || 'Erro ao tentar fazer login.');
-            }
-        } catch (err) {
-            setError('Não foi possível conectar ao servidor.'); 
-            console.log(err);
-        }
-    };
-
-    return (
-        <div className="container vh-100 d-flex justify-content-center align-items-center">
-            <div className="card p-4" style={{ width: '100%', maxWidth: '400px' }}>
-                <div className="card-body">
-                    <h2 className="text-center mb-4">Login Admin</h2>
-                    <form onSubmit={handleLogin}>
-                        <div className="mb-3">
-                            <label htmlFor="email" className="form-label">Email</label>
-                            <input
-                                type="email"
-                                className="form-control"
-                                id="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="senha" className="form-label">Senha</label>
-                            <input
-                                type="password"
-                                className="form-control"
-                                id="senha"
-                                value={senha}
-                                onChange={(e) => setSenha(e.target.value)}
-                                required
-                            />
-                        </div>
-                        {error && <div className="alert alert-danger">{error}</div>}
-                        <button type="submit" className="btn btn-primary w-100">Entrar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+// Função auxiliar para decodificar JWT
+function decodeJWT(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
     );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Erro ao decodificar JWT:', e);
+    return null;
+  }
 }
 
-// Hook para facilitar o uso do contexto
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Verifica o token ao carregar
+  useEffect(() => {
+    const token = localStorage.getItem('jwt_token');
+    if (token) {
+      const decoded = decodeJWT(token);
+      if (decoded && decoded.data) {
+        // Verifica se o token expirou
+        if (decoded.exp && decoded.exp * 1000 > Date.now()) {
+          setUser(decoded.data);
+          setIsAuthenticated(true);
+        } else {
+          // Token expirado
+          localStorage.removeItem('jwt_token');
+        }
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const login = async (email, senha) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/login.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.jwt) {
+        // Salva o token
+        localStorage.setItem('jwt_token', data.jwt);
+        
+        // Decodifica e salva o usuário
+        const decoded = decodeJWT(data.jwt);
+        if (decoded && decoded.data) {
+          setUser(decoded.data);
+          setIsAuthenticated(true);
+          
+          // Redireciona baseado no role
+          if (decoded.data.role === 'admin') {
+            router.push('/admin');
+          } else {
+            router.push('/inicio');
+          }
+          
+          return { success: true };
+        }
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Erro ao tentar fazer login.' 
+      };
+    } catch (err) {
+      console.error('Erro no login:', err);
+      return { 
+        success: false, 
+        message: 'Não foi possível conectar ao servidor.' 
+      };
+    }
+  };
+
+  const register = async (ra, nome, email, senha) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/registrar_aluno.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ra, nome, email, senha }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 201) {
+        return { success: true, message: data.message };
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Erro ao tentar registrar.' 
+      };
+    } catch (err) {
+      console.error('Erro no registro:', err);
+      return { 
+        success: false, 
+        message: 'Não foi possível conectar ao servidor.' 
+      };
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('jwt_token');
+    setUser(null);
+    setIsAuthenticated(false);
+    router.push('/');
+  };
+
+  return (
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isAuthenticated, 
+      login, 
+      register,
+      logout 
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
 export function useAuth() {
   return useContext(AuthContext);
 }

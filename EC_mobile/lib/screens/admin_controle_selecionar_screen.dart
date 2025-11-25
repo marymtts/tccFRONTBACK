@@ -182,9 +182,13 @@ class _AdminControleSelecionarScreenState extends State<AdminControleSelecionarS
                             builder: (context) => AdminVerInscritosScreen(
                               eventoId: evento.id,
                               eventoTitulo: evento.titulo,
+                              
                             ),
+                            
                           ),
+                          
                         );
+                        
                       },
                     );
                   },

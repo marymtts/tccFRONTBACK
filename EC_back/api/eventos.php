@@ -115,30 +115,32 @@ switch ($method) {
             // LINHA DE DEBUG:
             file_put_contents('debug_edit.txt', 'Recebi a data: ' . $data_evento);
 
-            // LÓGICA DA IMAGEM (com opção de remover)
-            $imagem_url_para_db = null; 
-            $atualizar_imagem_url = false; 
+            // LÓGICA DA IMAGEM (Versão Base64 para o Render)
+            $imagem_url_para_db = null;
+            $atualizar_imagem_url = false;
 
+            // Se enviou uma nova imagem
             if (isset($_FILES['imagem_evento']) && $_FILES['imagem_evento']['error'] == UPLOAD_ERR_OK) {
-                // ... (Lógica de upload de imagem) ...
-                $uploadDir = '../uploads/eventos/';
-                $nomeArquivoOriginal = basename($_FILES['imagem_evento']['name']);
-                $extensao = strtolower(pathinfo($nomeArquivoOriginal, PATHINFO_EXTENSION));
-                $nomeArquivoUnico = uniqid('evento_', true) . '.' . $extensao;
-                $caminhoDestino = $uploadDir . $nomeArquivoUnico;
                 
-                if (move_uploaded_file($_FILES['imagem_evento']['tmp_name'], $caminhoDestino)) {
-                    $imagem_url_para_db = '/uploads/eventos/' . $nomeArquivoUnico;
-                    $atualizar_imagem_url = true;
-                } else {
-                    http_response_code(500);
-                    echo json_encode(array("message" => "Erro ao salvar a nova imagem no PUT."));
-                    exit();
-                }
+                $tmp_name = $_FILES['imagem_evento']['tmp_name'];
+                $name = $_FILES['imagem_evento']['name'];
+                
+                // Pega a extensão (jpg, png, etc)
+                $extensao = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                
+                // Lê o conteúdo do arquivo e converte para Base64
+                $data = file_get_contents($tmp_name);
+                $base64 = 'data:image/' . $extensao . ';base64,' . base64_encode($data);
+                
+                // Agora a variável guarda o CÓDIGO da imagem, não o caminho
+                $imagem_url_para_db = $base64;
+                $atualizar_imagem_url = true;
+
             } elseif (isset($_POST['remover_imagem']) && (strtolower($_POST['remover_imagem']) == 'true' || $_POST['remover_imagem'] == '1')) {
+                // Se pediu para remover
                 $imagem_url_para_db = null;
-                $atualizar_imagem_url = true; 
-            }
+                $atualizar_imagem_url = true;
+            }   
 
             // Verifica dados obrigatórios
             if (!empty($titulo) && !empty($data_evento)&& !empty($hora_evento) && isset($inscricao)) {

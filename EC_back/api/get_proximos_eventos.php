@@ -37,7 +37,7 @@ switch ($method) {
             }
         } else {
             // Retorna todos os eventos, ordenados pela data mais recente primeiro
-            $stmt = $db->prepare("SELECT * FROM eventos WHERE data_evento >= CURDATE() ORDER BY data_evento ASC");
+            $stmt = $db->prepare("SELECT * FROM eventos");
             $stmt->execute();
             $eventos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

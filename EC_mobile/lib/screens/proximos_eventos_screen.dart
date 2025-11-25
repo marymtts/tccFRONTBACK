@@ -8,7 +8,8 @@ import 'package:ec_mobile/screens/inscricao_evento_screen.dart';
 import 'package:ec_mobile/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:ec_mobile/providers/user_provider.dart';
-import 'package:ec_mobile/screens/editar_evento_screen.dart'; 
+import 'package:ec_mobile/screens/editar_evento_screen.dart';
+import 'package:flutter/foundation.dart'; // Para Uint8List
 
 class ProximosEventosScreen extends StatefulWidget {
   const ProximosEventosScreen({super.key});
@@ -195,24 +196,50 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         
-                                        // A Imagem
-                                        (fullImageUrl != null)
-                                          ? Image.network(
-                                              fullImageUrl,
-                                              height: 180,
-                                              width: double.infinity,
-                                              fit: BoxFit.cover,
-                                              loadingBuilder: (context, child, progress) {
-                                                return progress == null
-                                                    ? child
-                                                    : Container(
-                                                        height: 180,
-                                                        child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
-                                                      );
-                                              },
-                                              errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-                                            )
-                                          : _buildImagePlaceholder(),
+                                        Builder(
+                                      builder: (context) {
+                                        final String? imageString = event['imagem_url']; // Pega o valor do banco
+
+                                        // 1. Se for nulo ou vazio, mostra placeholder
+                                        if (imageString == null || imageString.isEmpty) {
+                                          return _buildImagePlaceholder(); 
+                                        }
+
+                                        // 2. Se for URL antiga (começa com http ou /uploads) - Mantém compatibilidade
+                                        if (imageString.startsWith('http') || imageString.startsWith('/')) {
+                                          final url = imageString.startsWith('/') 
+                                              ? '$_serverUrl$imageString' // Adiciona seu dominio se começar com /
+                                              : imageString;
+                                          return Image.network(
+                                            url,
+                                            height: 180,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, err, stack) => _buildImagePlaceholder(),
+                                          );
+                                        }
+
+                                        // 3. Se for Base64 (Novo formato do Render)
+                                        try {
+                                          // O PHP manda algo como "data:image/png;base64,iVBORw..."
+                                          // Precisamos pegar só a parte depois da vírgula
+                                          final String base64String = imageString.contains(',') 
+                                              ? imageString.split(',').last 
+                                              : imageString;
+                                          
+                                          return Image.memory(
+                                            base64Decode(base64String), // Decodifica o texto para imagem
+                                            height: 180,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, err, stack) => _buildImagePlaceholder(),
+                                          );
+                                        } catch (e) {
+                                          return _buildImagePlaceholder();
+                                        }
+                                      },
+                                    ),
+                                    // --- FIM DA NOVA LÓGICA DE IMAGEM ---
 
                                         // O Conteúdo de Texto
                                         Padding(
@@ -265,6 +292,7 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
                                                           builder: (context) => EditarEventoScreen(eventId: eventId),
                                                         ),
                                                       );
+                                                      _fetchUpcomingEvents();
                                                     },
                                                     style: OutlinedButton.styleFrom(
                                                       foregroundColor: AppColors.secondaryText,

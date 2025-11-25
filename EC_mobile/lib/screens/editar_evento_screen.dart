@@ -512,9 +512,9 @@ Future<void> _pickImage() async {
     );
   }
 
-  // --- NOVA FUNÇÃO AUXILIAR: Lógica de preview da imagem ---
+  // --- NOVA FUNÇÃO AUXILIAR: Lógica de preview da imagem (CORRIGIDA) ---
   Widget _buildImagePreview() {
-    // 1. Se o usuário acabou de selecionar uma NOVA imagem
+    // 1. Se o usuário acabou de selecionar uma NOVA imagem (XFile)
     if (_selectedImage != null) {
       if (kIsWeb) {
         return Image.network(_selectedImage!.path, fit: BoxFit.cover);
@@ -522,33 +522,52 @@ Future<void> _pickImage() async {
         return Image.file(File(_selectedImage!.path), fit: BoxFit.cover);
       }
     }
+    
     // 2. Se o usuário marcou "Remover Imagem"
     if (_removerImagem) {
-      return _buildImagePlaceholder(); // Mostra o placeholder
+      return _buildImagePlaceholder(); // Mostra o placeholder vazio
     }
-    // 3. Se existe uma imagem antiga do banco E o usuário não removeu
-    if (_existingImageUrl != null) {
-      // O seu PHP salva a URL como '/uploads/eventos/evento_123.png'
-      // Precisamos adicionar o IP completo do servidor para o app carregar
-      final String fullImageUrl = 'https://tccfrontback.onrender.com$_existingImageUrl';
+
+    // 3. Se existe uma imagem salva no banco (seja URL ou Base64)
+    if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
       
-      return Image.network(
-        fullImageUrl,
-        fit: BoxFit.cover,
-        // Mostra um erro se a imagem antiga não for encontrada
-        errorBuilder: (context, error, stackTrace) => Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.red),
-            Text('Não foi possível carregar a imagem', textAlign: TextAlign.center),
-          ],
-        ),
-      );
+      // CASO A: É uma URL antiga (começa com http ou /)
+      // Isso mantém a compatibilidade com imagens que você salvou antes
+      if (_existingImageUrl!.startsWith('http') || _existingImageUrl!.startsWith('/')) {
+         final String fullImageUrl = _existingImageUrl!.startsWith('/') 
+            ? 'https://tccfrontback.onrender.com$_existingImageUrl' // Adiciona o domínio se for caminho relativo
+            : _existingImageUrl!;
+            
+         return Image.network(
+            fullImageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+         );
+      }
+
+      // CASO B: É um Base64 (Novo sistema do Render)
+      // O Base64 é apenas texto, não começa com http nem /
+      try {
+          // O PHP pode mandar "data:image/png;base64,CódigoGigante..."
+          // Precisamos limpar o começo para pegar só o código
+          final String base64String = _existingImageUrl!.contains(',') 
+              ? _existingImageUrl!.split(',').last 
+              : _existingImageUrl!;
+          
+          return Image.memory(
+            base64Decode(base64String), // Decodifica o texto para imagem
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => _buildImagePlaceholder(),
+          );
+      } catch (e) {
+          // Se der erro na decodificação, mostra o placeholder
+          return _buildImagePlaceholder();
+      }
     }
+
     // 4. Se não houver nada (padrão)
     return _buildImagePlaceholder();
   }
-
   // Placeholder padrão (o mesmo da tela de criar)
   Widget _buildImagePlaceholder() {
     return const Column(

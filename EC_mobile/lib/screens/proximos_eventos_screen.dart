@@ -291,8 +291,14 @@ class _ProximosEventosScreenState extends State<ProximosEventosScreen> {
                                                         MaterialPageRoute(
                                                           builder: (context) => EditarEventoScreen(eventId: eventId),
                                                         ),
-                                                      );
-                                                      _fetchUpcomingEvents();
+                                                      ).then((_) {
+                                                        // --- O SEGREDO ESTÁ AQUI ---
+                                                        // O comando .then() é executado EXATAMENTE quando você volta
+                                                        setState(() {
+                                                          _isLoading = true; // Mostra o carregando rapidinho
+                                                        });
+                                                        _fetchUpcomingEvents(); // Busca os dados novos no banco
+                                                      });
                                                     },
                                                     style: OutlinedButton.styleFrom(
                                                       foregroundColor: AppColors.secondaryText,
